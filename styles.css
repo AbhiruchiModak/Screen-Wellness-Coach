@@ -1,0 +1,264 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: linear-gradient(180deg, #E8EBF7 0%, #D4D9ED 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #4F46E5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4338CA;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #4F46E5;
+            border: 1px solid #E5E7EB;
+        }
+
+        .btn-secondary:hover {
+            background: #F9FAFB;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .card-title-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #EEF2FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke: #4F46E5;
+        }
+
+        .card-title-text h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 4px;
+        }
+
+        .card-title-text p {
+            font-size: 12px;
+            color: #6B7280;
+            font-weight: 400;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #D1D5DB;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch.active {
+            background: #4F46E5;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(20px);
+        }
+
+        .timer-display {
+            text-align: center;
+        }
+
+        .timer-value {
+            font-size: 56px;
+            font-weight: 600;
+            color: #4F46E5;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .timer-label {
+            font-size: 12px;
+            color: #9CA3AF;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .timer-input {
+            width: 80px;
+            padding: 6px 12px;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            color: #4F46E5;
+            font-weight: 500;
+        }
+
+        .timer-input:focus {
+            outline: none;
+            border-color: #4F46E5;
+        }
+
+        .timer-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid #E5E7EB;
+            background: white;
+            color: #6B7280;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .timer-btn:hover {
+            background: #F9FAFB;
+            border-color: #4F46E5;
+            color: #4F46E5;
+        }
+
+        .tips-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tips-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 16px;
+        }
+
+        .tips-list {
+            list-style: none;
+        }
+
+        .tips-list li {
+            font-size: 13px;
+            color: #4B5563;
+            line-height: 1.7;
+            margin-bottom: 12px;
+            padding-left: 8px;
+        }
+
+        .tips-list li:before {
+            content: "• ";
+            color: #4F46E5;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .tips-list strong {
+            color: #1F2937;
+            font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }

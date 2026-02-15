@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Wellness Coach</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Screen Wellness Coach</h1>
+            <p class="subtitle">Stay healthy while working at your computer</p>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="startAll()">Start All</button>
+                <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
+            </div>
+        </header>
+
+        <div class="cards-grid">
+            <!-- Blink Reminder -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-section">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </div>
+                        <div class="card-title-text">
+                            <h3>Blink Reminder</h3>
+                            <p>Remind me to blink regularly</p>
+                        </div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleTimer(this, 'blink')" id="toggle-blink">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="timer-display">
+                    <div class="timer-value" id="timer-blink">0:20</div>
+                    <div class="timer-label">Next reminder in</div>
+                </div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="decrement('blink')">−</button>
+                    <input type="text" class="timer-input" id="input-blink" value="0:20" onchange="updateTimer('blink')">
+                    <button class="timer-btn" onclick="increment('blink')">+</button>
+                </div>
+            </div>
+
+            <!-- Posture Check -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-section">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M17 7l-5-5-5 5M7 17l5 5 5-5"></path>
+                            </svg>
+                        </div>
+                        <div class="card-title-text">
+                            <h3>Posture Check</h3>
+                            <p>Check and correct your posture</p>
+                        </div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleTimer(this, 'posture')" id="toggle-posture">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="timer-display">
+                    <div class="timer-value" id="timer-posture">5:00</div>
+                    <div class="timer-label">Next reminder in</div>
+                </div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="decrement('posture')">−</button>
+                    <input type="text" class="timer-input" id="input-posture" value="5:00" onchange="updateTimer('posture')">
+                    <button class="timer-btn" onclick="increment('posture')">+</button>
+                </div>
+            </div>
+
+            <!-- Stretch Break -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-section">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="8" r="3"></circle>
+                                <path d="M12 11v6M8 17h8M9 21h6"></path>
+                            </svg>
+                        </div>
+                        <div class="card-title-text">
+                            <h3>Stretch Break</h3>
+                            <p>Take a break to stretch</p>
+                        </div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleTimer(this, 'stretch')" id="toggle-stretch">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="timer-display">
+                    <div class="timer-value" id="timer-stretch">20:00</div>
+                    <div class="timer-label">Next reminder in</div>
+                </div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="decrement('stretch')">−</button>
+                    <input type="text" class="timer-input" id="input-stretch" value="20:00" onchange="updateTimer('stretch')">
+                    <button class="timer-btn" onclick="increment('stretch')">+</button>
+                </div>
+            </div>
+
+            <!-- Screen Break -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-section">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                                <path d="M8 21h8M12 17v4"></path>
+                            </svg>
+                        </div>
+                        <div class="card-title-text">
+                            <h3>Screen Break</h3>
+                            <p>Look away from the screen</p>
+                        </div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleTimer(this, 'screen')" id="toggle-screen">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="timer-display">
+                    <div class="timer-value" id="timer-screen">20:00</div>
+                    <div class="timer-label">Next reminder in</div>
+                </div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="decrement('screen')">−</button>
+                    <input type="text" class="timer-input" id="input-screen" value="20:00" onchange="updateTimer('screen')">
+                    <button class="timer-btn" onclick="increment('screen')">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tips-card">
+            <h2 class="tips-header">Tips for Screen Wellness</h2>
+            <ul class="tips-list">
+                <li><strong>Blink regularly:</strong> Blinking helps keep your eyes moist and reduce eye strain.</li>
+                <li><strong>20-20-20 rule:</strong> Every 20 minutes, look at something 20 feet away for 20 seconds.</li>
+                <li><strong>Good posture:</strong> Keep your back straight, shoulders relaxed, and feet flat on the floor.</li>
+                <li><strong>Stretch regularly:</strong> Stand up and stretch every 20-30 minutes to prevent RSI/carpal tunnel.</li>
+                <li><strong>Screen distance:</strong> Keep your screen at an arm's length away and slightly below eye level.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
