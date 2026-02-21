@@ -1,264 +1,485 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    background: linear-gradient(180deg, #E8EBF7 0%, #D4D9ED 100%);
+    min-height: 100vh;
+    padding: 40px 20px;
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-            background: linear-gradient(180deg, #E8EBF7 0%, #D4D9ED 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
+.container {
+    max-width: 680px;
+    margin: 0 auto;
+}
 
-        .container {
-            max-width: 680px;
-            margin: 0 auto;
-        }
+header {
+    text-align: center;
+    margin-bottom: 32px;
+}
 
-        header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
+h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 8px;
+}
 
-        h1 {
-            font-size: 28px;
-            font-weight: 600;
-            color: #1F2937;
-            margin-bottom: 8px;
-        }
+.subtitle {
+    font-size: 14px;
+    color: #6B7280;
+    margin-bottom: 20px;
+}
 
-        .subtitle {
-            font-size: 14px;
-            color: #6B7280;
-            margin-bottom: 20px;
-        }
+.button-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
 
-        .button-group {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
+.btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
 
-        .btn {
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
+.btn-primary {
+    background: #4F46E5;
+    color: white;
+}
 
-        .btn-primary {
-            background: #4F46E5;
-            color: white;
-        }
+.btn-primary:hover {
+    background: #4338CA;
+}
 
-        .btn-primary:hover {
-            background: #4338CA;
-        }
+.btn-secondary {
+    background: white;
+    color: #4F46E5;
+    border: 1px solid #E5E7EB;
+}
 
-        .btn-secondary {
-            background: white;
-            color: #4F46E5;
-            border: 1px solid #E5E7EB;
-        }
+.btn-secondary:hover {
+    background: #F9FAFB;
+}
 
-        .btn-secondary:hover {
-            background: #F9FAFB;
-        }
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
 
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+.card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+}
 
-        .card-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 32px;
-        }
+.card-title-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
 
-        .card-title-section {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
+.card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #EEF2FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
 
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: #EEF2FF;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
+.card-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: #4F46E5;
+}
 
-        .card-icon svg {
-            width: 20px;
-            height: 20px;
-            stroke: #4F46E5;
-        }
+.card-title-text h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 4px;
+}
 
-        .card-title-text h3 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1F2937;
-            margin-bottom: 4px;
-        }
+.card-title-text p {
+    font-size: 12px;
+    color: #6B7280;
+    font-weight: 400;
+}
 
-        .card-title-text p {
-            font-size: 12px;
-            color: #6B7280;
-            font-weight: 400;
-        }
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #D1D5DB;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
 
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-            background: #D1D5DB;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.3s;
-            flex-shrink: 0;
-        }
+.toggle-switch.active {
+    background: #4F46E5;
+}
 
-        .toggle-switch.active {
-            background: #4F46E5;
-        }
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
 
-        .toggle-slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s;
-        }
+.toggle-switch.active .toggle-slider {
+    transform: translateX(20px);
+}
 
-        .toggle-switch.active .toggle-slider {
-            transform: translateX(20px);
-        }
+.timer-display {
+    text-align: center;
+}
 
-        .timer-display {
-            text-align: center;
-        }
+.timer-value {
+    font-size: 56px;
+    font-weight: 600;
+    color: #4F46E5;
+    line-height: 1;
+    margin-bottom: 8px;
+}
 
-        .timer-value {
-            font-size: 56px;
-            font-weight: 600;
-            color: #4F46E5;
-            line-height: 1;
-            margin-bottom: 8px;
-        }
+.timer-label {
+    font-size: 12px;
+    color: #9CA3AF;
+}
 
-        .timer-label {
-            font-size: 12px;
-            color: #9CA3AF;
-        }
+.timer-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16px;
+}
 
-        .timer-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            justify-content: center;
-            margin-top: 16px;
-        }
+.timer-input {
+    width: 80px;
+    padding: 6px 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    color: #4F46E5;
+    font-weight: 500;
+}
 
-        .timer-input {
-            width: 80px;
-            padding: 6px 12px;
-            border: 1px solid #E5E7EB;
-            border-radius: 6px;
-            text-align: center;
-            font-size: 14px;
-            color: #4F46E5;
-            font-weight: 500;
-        }
+.timer-input:focus {
+    outline: none;
+    border-color: #4F46E5;
+}
 
-        .timer-input:focus {
-            outline: none;
-            border-color: #4F46E5;
-        }
+.timer-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #E5E7EB;
+    background: white;
+    color: #6B7280;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
 
-        .timer-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            border: 1px solid #E5E7EB;
-            background: white;
-            color: #6B7280;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
+.timer-btn:hover {
+    background: #F9FAFB;
+    border-color: #4F46E5;
+    color: #4F46E5;
+}
 
-        .timer-btn:hover {
-            background: #F9FAFB;
-            border-color: #4F46E5;
-            color: #4F46E5;
-        }
+.tips-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 
-        .tips-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+.tips-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 16px;
+}
 
-        .tips-header {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1F2937;
-            margin-bottom: 16px;
-        }
+.tips-list {
+    list-style: none;
+}
 
-        .tips-list {
-            list-style: none;
-        }
+.tips-list li {
+    font-size: 13px;
+    color: #4B5563;
+    line-height: 1.7;
+    margin-bottom: 12px;
+    padding-left: 8px;
+}
 
-        .tips-list li {
-            font-size: 13px;
-            color: #4B5563;
-            line-height: 1.7;
-            margin-bottom: 12px;
-            padding-left: 8px;
-        }
+.tips-list li:before {
+    content: "• ";
+    color: #4F46E5;
+    font-weight: bold;
+    margin-right: 8px;
+}
 
-        .tips-list li:before {
-            content: "• ";
-            color: #4F46E5;
-            font-weight: bold;
-            margin-right: 8px;
-        }
+.tips-list strong {
+    color: #1F2937;
+    font-weight: 600;
+}
 
-        .tips-list strong {
-            color: #1F2937;
-            font-weight: 600;
-        }
+/*posture monitor styles*/
 
-        @media (max-width: 640px) {
-            .cards-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+/* Camera Posture Monitor */
+#posture-monitor {
+    background: white;
+    border-radius: 16px;
+    padding: 20px 24px;
+    max-width: 760px;
+    margin: 0 auto 28px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
+
+.monitor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.monitor-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.monitor-icon {
+    width: 38px;
+    height: 38px;
+    background: #ebebf8;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4040cc;
+    font-size: 18px;
+}
+
+.monitor-title h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.monitor-title p {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.camera-toggle {
+    background: #4040cc;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.camera-toggle:hover {
+    background: #3232aa;
+}
+
+.camera-toggle.active {
+    background: #cc4040;
+}
+
+.camera-toggle.active:hover {
+    background: #aa3232;
+}
+
+.camera-area {
+    display: none;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.camera-area.visible {
+    display: flex;
+}
+
+.video-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+#webcam {
+    width: 200px;
+    height: 150px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #111;
+    display: block;
+    transform: scaleX(-1);
+}
+
+#face-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 150px;
+    border-radius: 10px;
+    transform: scaleX(-1);
+    pointer-events: none;
+}
+
+.posture-status-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f5f6fa;
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+    transition: background 0.3s;
+}
+
+.status-dot.ok {
+    background: #22bb55;
+}
+
+.status-dot.warn {
+    background: #ffaa00;
+}
+
+.status-dot.bad {
+    background: #ee3333;
+}
+
+.status-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #444;
+}
+
+.status-value {
+    font-size: 0.8rem;
+    color: #888;
+    margin-left: auto;
+}
+
+.detection-info {
+    font-size: 0.78rem;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /*for posture monitor responsiveness */
+
+    #posture-monitor {
+        padding: 16px;
+    }
+
+    /* Stack monitor header: title on top, button below */
+    .monitor-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .camera-toggle {
+        width: 100%;
+        text-align: center;
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    /* Stack video + status panel vertically */
+    .camera-area.visible {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Make video fill full card width */
+    .video-wrapper {
+        width: 100%;
+    }
+
+    #webcam {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+    }
+
+    #face-canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Status panel takes full width */
+    .posture-status-panel {
+        width: 100%;
+    }
+
+    .status-item {
+        padding: 9px 12px;
+    }
+
+    .status-label {
+        font-size: 0.82rem;
+    }
+
+    .status-value {
+        font-size: 0.78rem;
+    }
+}
