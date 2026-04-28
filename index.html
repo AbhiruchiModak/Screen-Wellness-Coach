@@ -1,205 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Screen Wellness Coach</title>
-    <link rel="stylesheet" href="styles.css">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4040cc">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Wellness Coach">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js + BlazeFace model (face detection fallback) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js" defer></script>
 </head>
-
 <body>
-    <div class="container">
-        <header>
-            <h1>Screen Wellness Coach</h1>
-            <p class="subtitle">Stay healthy while working at your computer</p>
 
-            <!-- Camera Posture Monitor -->
-            <div id="posture-monitor">
-                <div class="monitor-header">
-                    <div class="monitor-title">
-                        <div class="monitor-icon">📷</div>
-                        <div>
-                            <h3>Camera Posture Monitor</h3>
-                            <p>Detects distance &amp; eye-level alignment in real time</p>
-                        </div>
-                    </div>
-                    <button class="camera-toggle" id="cam-btn" onclick="toggleCamera()">Enable Camera</button>
-                </div>
-                <div class="camera-area" id="camera-area">
-                    <div class="video-wrapper">
-                        <video id="webcam" autoplay muted playsinline></video>
-                        <canvas id="face-canvas"></canvas>
-                    </div>
-                    <div class="posture-status-panel">
-                        <div class="status-item">
-                            <div class="status-dot" id="dot-distance"></div>
-                            <span class="status-label">Screen Distance</span>
-                            <span class="status-value" id="val-distance">Detecting…</span>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-dot" id="dot-eyelevel"></div>
-                            <span class="status-label">Eye Level</span>
-                            <span class="status-value" id="val-eyelevel">Detecting…</span>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-dot" id="dot-face"></div>
-                            <span class="status-label">Face Detected</span>
-                            <span class="status-value" id="val-face">—</span>
-                        </div>
-                        <p class="detection-info">⚡ Uses browser Face Detection API (Chrome/Edge). Updates every 2s.</p>
-                    </div>
-                </div>
+<header>
+    <h1>Screen Wellness Coach</h1>
+    <p>Stay healthy while working at your computer</p>
+</header>
+
+<!-- Camera Posture Monitor -->
+<section id="posture-monitor">
+    <div class="monitor-header">
+        <div class="monitor-title">
+            <div class="monitor-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
             </div>
-
-            <div class="button-group">
-                <button class="btn btn-primary" onclick="startAll()">Start All</button>
-                <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
-            </div>
-        </header>
-
-        <div class="cards-grid">
-            <!-- Blink Reminder -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title-section">
-                        <div class="card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </div>
-                        <div class="card-title-text">
-                            <h3>Blink Reminder</h3>
-                            <p>Remind me to blink regularly</p>
-                        </div>
-                    </div>
-                    <div class="toggle-switch" onclick="toggleTimer(this,'blink')" id="toggle-blink">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                <div class="timer-display">
-                    <div class="timer-value" id="timer-blink">0:20</div>
-                    <div class="timer-label">Next reminder in</div>
-                </div>
-                <div class="timer-controls">
-                    <button class="timer-btn" onclick="decrement('blink')">−</button>
-                    <input type="text" class="timer-input" id="input-blink" value="0:20"
-                        onchange="updateTimer('blink')">
-                    <button class="timer-btn" onclick="increment('blink')">+</button>
-                </div>
-            </div>
-
-            <!-- Posture Check -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title-section">
-                        <div class="card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2v20M17 7l-5-5-5 5M7 17l5 5 5-5"></path>
-                            </svg>
-                        </div>
-                        <div class="card-title-text">
-                            <h3>Posture Check</h3>
-                            <p>Check and correct your posture</p>
-                        </div>
-                    </div>
-                    <div class="toggle-switch" onclick="toggleTimer(this, 'posture')" id="toggle-posture">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                <div class="timer-display">
-                    <div class="timer-value" id="timer-posture">5:00</div>
-                    <div class="timer-label">Next reminder in</div>
-                </div>
-                <div class="timer-controls">
-                    <button class="timer-btn" onclick="decrement('posture')">−</button>
-                    <input type="text" class="timer-input" id="input-posture" value="5:00"
-                        onchange="updateTimer('posture')">
-                    <button class="timer-btn" onclick="increment('posture')">+</button>
-                </div>
-            </div>
-
-            <!-- Stretch Break -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title-section">
-                        <div class="card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="8" r="3"></circle>
-                                <path d="M12 11v6M8 17h8M9 21h6"></path>
-                            </svg>
-                        </div>
-                        <div class="card-title-text">
-                            <h3>Stretch Break</h3>
-                            <p>Take a break to stretch</p>
-                        </div>
-                    </div>
-                    <div class="toggle-switch" onclick="toggleTimer(this, 'stretch')" id="toggle-stretch">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                <div class="timer-display">
-                    <div class="timer-value" id="timer-stretch">20:00</div>
-                    <div class="timer-label">Next reminder in</div>
-                </div>
-                <div class="timer-controls">
-                    <button class="timer-btn" onclick="decrement('stretch')">−</button>
-                    <input type="text" class="timer-input" id="input-stretch" value="20:00"
-                        onchange="updateTimer('stretch')">
-                    <button class="timer-btn" onclick="increment('stretch')">+</button>
-                </div>
-            </div>
-
-            <!-- Screen Break -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title-section">
-                        <div class="card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
-                                <path d="M8 21h8M12 17v4"></path>
-                            </svg>
-                        </div>
-                        <div class="card-title-text">
-                            <h3>Screen Break</h3>
-                            <p>Look away from the screen</p>
-                        </div>
-                    </div>
-                    <div class="toggle-switch" onclick="toggleTimer(this, 'screen')" id="toggle-screen">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                <div class="timer-display">
-                    <div class="timer-value" id="timer-screen">20:00</div>
-                    <div class="timer-label">Next reminder in</div>
-                </div>
-                <div class="timer-controls">
-                    <button class="timer-btn" onclick="decrement('screen')">−</button>
-                    <input type="text" class="timer-input" id="input-screen" value="20:00"
-                        onchange="updateTimer('screen')">
-                    <button class="timer-btn" onclick="increment('screen')">+</button>
-                </div>
+            <div>
+                <h3>Camera Posture Monitor</h3>
+                <p>Detects distance and eye-level alignment in real time</p>
             </div>
         </div>
+        <button class="camera-toggle" id="cam-btn" onclick="toggleCamera()">Enable Camera</button>
+    </div>
 
-        <div class="tips-card">
-            <h2 class="tips-header">Tips for Screen Wellness</h2>
-            <ul class="tips-list">
-                <li><strong>Blink regularly:</strong> Blinking helps keep your eyes moist and reduce eye strain.</li>
-                <li><strong>20-20-20 rule:</strong> Every 20 minutes, look at something 20 feet away for 20 seconds.
-                </li>
-                <li><strong>Good posture:</strong> Keep your back straight, shoulders relaxed, and feet flat on the
-                    floor.</li>
-                <li><strong>Stretch regularly:</strong> Stand up and stretch every 20-30 minutes to prevent RSI/carpal
-                    tunnel.</li>
-                <li><strong>Screen distance:</strong> Keep your screen at an arm's length away and slightly below eye
-                    level.</li>
-            </ul>
+    <div class="camera-area" id="camera-area">
+        <div class="video-wrapper">
+            <video id="webcam" autoplay muted playsinline></video>
+            <canvas id="face-canvas"></canvas>
+        </div>
+        <div class="posture-status-panel">
+            <div class="status-item">
+                <div class="status-dot" id="dot-distance"></div>
+                <span class="status-label">Screen Distance</span>
+                <span class="status-value" id="val-distance">Detecting...</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="dot-eyelevel"></div>
+                <span class="status-label">Eye Level</span>
+                <span class="status-value" id="val-eyelevel">Detecting...</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="dot-face"></div>
+                <span class="status-label">Face Detected</span>
+                <span class="status-value" id="val-face">-</span>
+            </div>
+            <p class="detection-info" id="detection-info">Uses browser Face Detection API where available, TensorFlow.js BlazeFace otherwise.</p>
+        </div>
+    </div>
+    <div id="notif-banner">
+        <span>Notifications are blocked. Enable them to receive posture and wellness alerts.</span>
+        <button onclick="requestNotificationPermission()">Enable Notifications</button>
+    </div>
+</section>
+
+<!-- Main Buttons -->
+<div class="btn-row">
+    <button class="btn-primary" onclick="startAll()">Start All</button>
+    <button class="btn-secondary" onclick="resetAll()">Reset All</button>
+</div>
+
+<!-- Timer Cards -->
+<div class="cards-grid">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-info">
+                <div class="card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3>Blink Reminder</h3>
+                    <p>Remind me to blink regularly</p>
+                </div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-blink" onchange="toggleTimer('blink')"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="timer-display" id="disp-blink">0:20</div>
+        <div class="timer-label">Next reminder in</div>
+        <div class="timer-controls">
+            <button class="ctrl-btn" onclick="adjustInterval('blink',-10)">-</button>
+            <input class="ctrl-input" id="inp-blink" value="0:20" onchange="setIntervalFromInput('blink')">
+            <button class="ctrl-btn" onclick="adjustInterval('blink',10)">+</button>
         </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-info">
+                <div class="card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+                        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+                        <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+                        <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3>Posture Check</h3>
+                    <p>Check and correct your posture</p>
+                </div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-posture" onchange="toggleTimer('posture')"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="timer-display" id="disp-posture">5:00</div>
+        <div class="timer-label">Next reminder in</div>
+        <div class="timer-controls">
+            <button class="ctrl-btn" onclick="adjustInterval('posture',-30)">-</button>
+            <input class="ctrl-input" id="inp-posture" value="5:00" onchange="setIntervalFromInput('posture')">
+            <button class="ctrl-btn" onclick="adjustInterval('posture',30)">+</button>
+        </div>
+    </div>
 
+    <div class="card">
+        <div class="card-header">
+            <div class="card-info">
+                <div class="card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="5" r="3"/><path d="M12 8v4M8.5 11c.5 2 1 3.5 1 5H14.5c0-1.5.5-3 1-5"/>
+                        <path d="M9.5 16c-.5 1.5-.5 3 0 4.5M14.5 16c.5 1.5.5 3 0 4.5"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3>Stretch Break</h3>
+                    <p>Take a break to stretch</p>
+                </div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-stretch" onchange="toggleTimer('stretch')"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="timer-display" id="disp-stretch">20:00</div>
+        <div class="timer-label">Next reminder in</div>
+        <div class="timer-controls">
+            <button class="ctrl-btn" onclick="adjustInterval('stretch',-60)">-</button>
+            <input class="ctrl-input" id="inp-stretch" value="20:00" onchange="setIntervalFromInput('stretch')">
+            <button class="ctrl-btn" onclick="adjustInterval('stretch',60)">+</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-info">
+                <div class="card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3>Screen Break</h3>
+                    <p>Look away from the screen</p>
+                </div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-screen" onchange="toggleTimer('screen')"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="timer-display" id="disp-screen">20:00</div>
+        <div class="timer-label">Next reminder in</div>
+        <div class="timer-controls">
+            <button class="ctrl-btn" onclick="adjustInterval('screen',-60)">-</button>
+            <input class="ctrl-input" id="inp-screen" value="20:00" onchange="setIntervalFromInput('screen')">
+            <button class="ctrl-btn" onclick="adjustInterval('screen',60)">+</button>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
 </html>
