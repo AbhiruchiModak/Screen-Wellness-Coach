@@ -1,0 +1,35 @@
+{
+    "name": "Screen Wellness Coach",
+    "short_name": "Wellness Coach",
+    "description": "Stay healthy while working at your computer with posture monitoring and timed wellness reminders.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#dde3f0",
+    "theme_color": "#4040cc",
+    "lang": "en",
+    "categories": ["health", "productivity", "utilities"],
+    "icons": [
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Start All Reminders",
+            "short_name": "Start All",
+            "description": "Open the app and start all wellness timers",
+            "url": "./index.html"
+        }
+    ]
+}
