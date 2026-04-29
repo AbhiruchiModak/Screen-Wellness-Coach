@@ -1,100 +1,177 @@
-// ─────────────────────────────────────────────
-// Service Worker Registration (PWA)
-// ─────────────────────────────────────────────
+'use strict';
+
+// ═══════════════════════════════════════════════
+// Service Worker Registration
+// ═══════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered:', reg.scope))
-            .catch(err => console.warn('Service Worker registration failed:', err));
+            .then(r => console.log('SW registered:', r.scope))
+            .catch(e => console.warn('SW registration failed:', e));
     });
 }
 
-// ─────────────────────────────────────────────
-// Push Notification Setup
-// ─────────────────────────────────────────────
-
-function notifSupported() {
-    return 'Notification' in window;
+// ═══════════════════════════════════════════════
+// Listen for messages from the Service Worker
+// (handles "I understood" and "Snooze" actions)
+// ═══════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+        const { action, timerName } = event.data || {};
+        if (!timerName) return;
+        if (action === 'understood') {
+            handleUnderstood(timerName);
+        } else if (action === 'snooze') {
+            handleSnooze(timerName);
+        }
+    });
 }
 
+// ═══════════════════════════════════════════════
+// Guided Setup Wizard
+// ═══════════════════════════════════════════════
+let currentStep = 1;
+const TOTAL_STEPS = 6;
+
+function openWizard() {
+    currentStep = 1;
+    renderStep();
+    document.getElementById('wizard-overlay').classList.remove('hidden');
+}
+
+function closeWizard() {
+    document.getElementById('wizard-overlay').classList.add('hidden');
+    localStorage.setItem('wizardSeen', '1');
+}
+
+function wizardNext() {
+    if (currentStep < TOTAL_STEPS) { currentStep++; renderStep(); }
+    else closeWizard();
+}
+
+function wizardBack() {
+    if (currentStep > 1) { currentStep--; renderStep(); }
+}
+
+function renderStep() {
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+        document.getElementById(`step-${i}`).classList.toggle('active', i === currentStep);
+        const dot = document.getElementById(`dot-${i}`);
+        if (dot) dot.classList.toggle('active', i === currentStep);
+    }
+}
+
+// Show wizard on first visit
+document.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem('wizardSeen')) {
+        openWizard();
+    } else {
+        document.getElementById('wizard-overlay').classList.add('hidden');
+    }
+    checkNotificationPermission();
+});
+
+// ═══════════════════════════════════════════════
+// Accessibility — High Contrast & Font Size
+// ═══════════════════════════════════════════════
+const FONT_SIZES = ['', 'fs-lg', 'fs-xl'];
+let fontSizeIdx = 0;
+const FONTSIZE_LABELS = ['Larger Text', 'Extra Large', 'Normal Text'];
+
+function toggleContrast() {
+    const on = document.body.classList.toggle('hc');
+    const btn = document.getElementById('btn-contrast');
+    btn.setAttribute('aria-pressed', String(on));
+    btn.classList.toggle('on', on);
+    localStorage.setItem('hc', on ? '1' : '');
+}
+
+function cycleFontSize() {
+    document.body.classList.remove(FONT_SIZES[fontSizeIdx]);
+    fontSizeIdx = (fontSizeIdx + 1) % FONT_SIZES.length;
+    if (FONT_SIZES[fontSizeIdx]) document.body.classList.add(FONT_SIZES[fontSizeIdx]);
+    document.getElementById('fontsize-label').textContent = FONTSIZE_LABELS[fontSizeIdx];
+    localStorage.setItem('fsIdx', fontSizeIdx);
+}
+
+// Restore preferences
+(function restorePrefs() {
+    if (localStorage.getItem('hc')) {
+        document.body.classList.add('hc');
+        const btn = document.getElementById('btn-contrast');
+        if (btn) { btn.setAttribute('aria-pressed', 'true'); btn.classList.add('on'); }
+    }
+    const saved = parseInt(localStorage.getItem('fsIdx') || '0', 10);
+    if (saved > 0 && saved < FONT_SIZES.length) {
+        fontSizeIdx = saved;
+        document.body.classList.add(FONT_SIZES[fontSizeIdx]);
+        const lbl = document.getElementById('fontsize-label');
+        if (lbl) lbl.textContent = FONTSIZE_LABELS[fontSizeIdx];
+    }
+})();
+
+// ═══════════════════════════════════════════════
+// Notifications
+// ═══════════════════════════════════════════════
 function notifAllowed() {
-    return notifSupported() && Notification.permission === 'granted';
+    return 'Notification' in window && Notification.permission === 'granted';
 }
 
-// Request permission — called from the banner button and from startAll().
 async function requestNotificationPermission() {
-    if (!notifSupported()) {
-        console.warn('Notifications not supported in this browser.');
-        return false;
-    }
+    if (!('Notification' in window)) return false;
     if (Notification.permission === 'denied') {
-        alert('Notification permission is blocked. Please enable it in your browser site settings, then reload the page.');
+        alert('Notifications are blocked. Please enable them in your browser site settings and reload the page.');
         return false;
     }
-    if (Notification.permission === 'granted') {
-        hideBanner();
-        return true;
-    }
-    // 'default' state — prompt the user
+    if (Notification.permission === 'granted') { hideBanner(); return true; }
     const result = await Notification.requestPermission();
     if (result === 'granted') { hideBanner(); return true; }
     return false;
 }
 
-// Show the banner unless permission is already granted.
 function checkNotificationPermission() {
-    if (!notifSupported()) return;
+    if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') showBanner();
 }
 
-function showBanner() {
-    const b = document.getElementById('notif-banner');
-    if (b) b.classList.add('visible');
-}
-function hideBanner() {
-    const b = document.getElementById('notif-banner');
-    if (b) b.classList.remove('visible');
-}
+function showBanner() { document.getElementById('notif-banner')?.classList.add('visible'); }
+function hideBanner()  { document.getElementById('notif-banner')?.classList.remove('visible'); }
 
-/**
- * Get the active SW registration with a hard 2 s timeout so we never
- * hang on file:// origins or misconfigured servers.
- */
 function getSwReg() {
     if (!('serviceWorker' in navigator)) return Promise.resolve(null);
     return Promise.race([
         navigator.serviceWorker.ready,
-        new Promise(resolve => setTimeout(() => resolve(null), 2000))
+        new Promise(r => setTimeout(() => r(null), 2000))
     ]).catch(() => null);
 }
 
 /**
- * Fire a notification. Uses SW showNotification (visible even when the tab
- * is backgrounded / screen is off) when available, plain Notification() as
- * fallback. Deliberately NOT async at the call-site so callers don't need
- * to await it; all errors are handled internally.
+ * Send a notification with "I understood" and "Snooze 10 min" action buttons.
+ * Uses SW showNotification for background delivery; falls back to plain Notification.
  */
 function sendNotification(title, body, tag) {
-    // Always re-check at fire time — permission may have been granted after load
-    if (!notifAllowed()) {
-        console.warn('Notification skipped — permission not granted.');
-        return;
-    }
+    if (!notifAllowed()) { console.warn('Notification skipped — no permission.'); return; }
 
     const options = {
         body,
-        tag:                tag || 'wellness',
+        tag,
         icon:               'icons/icon-192.png',
         badge:              'icons/icon-192.png',
         renotify:           true,
         requireInteraction: false,
         silent:             false,
+        // Action buttons (supported in SW notifications on Android/desktop Chrome)
+        actions: [
+            { action: 'understood', title: 'I understood' },
+            { action: 'snooze',     title: 'Snooze 10 min' }
+        ],
+        data: { timerName: tag }
     };
 
     getSwReg().then(swReg => {
         if (swReg && typeof swReg.showNotification === 'function') {
             swReg.showNotification(title, options).catch(err => {
-                console.warn('SW showNotification failed, using fallback:', err);
+                console.warn('SW notification failed, using fallback:', err);
                 plainNotif(title, options);
             });
         } else {
@@ -105,26 +182,45 @@ function sendNotification(title, body, tag) {
 
 function plainNotif(title, options) {
     try { new Notification(title, options); }
-    catch (err) { console.warn('Notification() failed:', err); }
+    catch (e) { console.warn('Notification() failed:', e); }
 }
 
-// ─────────────────────────────────────────────
-// Timer Logic
-// ─────────────────────────────────────────────
-const timers = {
-    blink:   { interval: 20,   remaining: 20,   active: false, ticker: null },
-    posture: { interval: 300,  remaining: 300,  active: false, ticker: null },
-    stretch: { interval: 1200, remaining: 1200, active: false, ticker: null },
-    screen:  { interval: 1200, remaining: 1200, active: false, ticker: null },
+// ═══════════════════════════════════════════════
+// Timer State
+// ═══════════════════════════════════════════════
+const TIMER_NAMES = ['blink', 'posture', 'stretch', 'screen'];
+
+const timerDefaults = {
+    blink:   { interval: 20,   label: 'Blink Reminder',  body: 'Time to blink. Rest your eyes for a moment.' },
+    posture: { interval: 300,  label: 'Posture Check',   body: 'Sit up straight and check your posture.' },
+    stretch: { interval: 1200, label: 'Stretch Break',   body: 'Stand up and take a short stretching break.' },
+    screen:  { interval: 1200, label: 'Screen Break',    body: 'Look away from the screen for at least 20 seconds.' },
 };
 
-const reminderMessages = {
-    blink:   { title: 'Blink Reminder',   body: 'Time to blink. Rest your eyes for a moment.' },
-    posture: { title: 'Posture Check',    body: 'Sit up straight and check your posture.' },
-    stretch: { title: 'Stretch Break',    body: 'Stand up and take a short stretching break.' },
-    screen:  { title: 'Screen Break',     body: 'Look away from the screen for at least 20 seconds.' },
-};
+// Runtime state per timer
+const timers = {};
+TIMER_NAMES.forEach(name => {
+    timers[name] = {
+        interval:     timerDefaults[name].interval,
+        remaining:    timerDefaults[name].interval,
+        active:       false,
+        ticker:       null,
+        // Frequency mode
+        freqEnabled:  false,
+        freqN:        timerDefaults[name].interval,  // repeat every N seconds
+        freqM:        timerDefaults[name].interval * 3, // for M seconds total
+        freqWindow:   null,   // setTimeout handle for end-of-window
+        freqInWindow: false,  // currently inside a frequency burst window
+        freqBurst:    null,   // setInterval handle for the burst
+        // Snooze
+        snoozed:      false,
+        snoozeTimer:  null,
+    };
+});
 
+// ═══════════════════════════════════════════════
+// Timer Display Helpers
+// ═══════════════════════════════════════════════
 function fmt(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -132,58 +228,199 @@ function fmt(sec) {
 }
 
 function updateDisplay(name) {
-    document.getElementById(`disp-${name}`).textContent = fmt(timers[name].remaining);
-    document.getElementById(`inp-${name}`).value = fmt(timers[name].interval);
+    const t = timers[name];
+    const disp = document.getElementById(`disp-${name}`);
+    if (disp) {
+        if (t.snoozed) {
+            disp.textContent = 'Snoozed';
+        } else {
+            disp.textContent = fmt(t.remaining);
+        }
+    }
+    const inp = document.getElementById(`inp-${name}`);
+    if (inp) inp.value = fmt(t.interval);
 }
 
+// ═══════════════════════════════════════════════
+// Core Timer Logic
+// ═══════════════════════════════════════════════
 function toggleTimer(name) {
     const t = timers[name];
     t.active = document.getElementById(`tog-${name}`).checked;
 
     if (t.active) {
-        // Ensure we have notification permission whenever a timer is turned on
         if (!notifAllowed()) requestNotificationPermission();
-
-        t.remaining = t.interval;
-        t.ticker = setInterval(() => {
-            t.remaining--;
-            if (t.remaining <= 0) {
-                fireReminder(name);
-                t.remaining = t.interval;
-            }
-            updateDisplay(name);
-        }, 1000);
+        startTimerTicker(name);
     } else {
-        clearInterval(t.ticker);
-        t.remaining = t.interval;
-        updateDisplay(name);
+        stopTimerCompletely(name);
     }
 }
 
-function fireReminder(name) {
-    const { title, body } = reminderMessages[name];
-    sendNotification(title, body, name);
+function startTimerTicker(name) {
+    const t = timers[name];
+    t.remaining = t.interval;
+    t.snoozed = false;
+    document.getElementById(`card-${name}`)?.classList.remove('snoozed');
+    updateDisplay(name);
+
+    clearInterval(t.ticker);
+    t.ticker = setInterval(() => {
+        if (t.snoozed) return; // paused during snooze
+        t.remaining--;
+        if (t.remaining <= 0) {
+            fireReminder(name);
+            t.remaining = t.interval;
+        }
+        updateDisplay(name);
+    }, 1000);
 }
 
+function stopTimerCompletely(name) {
+    const t = timers[name];
+    clearInterval(t.ticker);
+    clearTimeout(t.snoozeTimer);
+    clearInterval(t.freqBurst);
+    clearTimeout(t.freqWindow);
+    t.active = false;
+    t.snoozed = false;
+    t.freqInWindow = false;
+    t.remaining = t.interval;
+    document.getElementById(`card-${name}`)?.classList.remove('snoozed');
+    updateDisplay(name);
+}
+
+function fireReminder(name) {
+    const t = timers[name];
+    const { label, body } = timerDefaults[name];
+
+    if (t.freqEnabled && !t.freqInWindow) {
+        // Enter frequency burst window
+        startFreqBurst(name);
+    } else if (!t.freqEnabled) {
+        sendNotification(label, body, name);
+    }
+    // If freqEnabled and already in window, burst handles its own notifications
+}
+
+// ═══════════════════════════════════════════════
+// Frequency Mode — burst window logic
+// ═══════════════════════════════════════════════
+function startFreqBurst(name) {
+    const t = timers[name];
+    const n = Math.max(5, parseInt(document.getElementById(`freq-n-${name}`)?.value || t.freqN, 10));
+    const m = Math.max(n + 1, parseInt(document.getElementById(`freq-m-${name}`)?.value || t.freqM, 10));
+
+    t.freqInWindow = true;
+    const { label, body } = timerDefaults[name];
+
+    // Fire immediately on window start
+    sendNotification(label, body, name);
+
+    // Then repeat every N seconds
+    t.freqBurst = setInterval(() => {
+        if (!t.freqInWindow || t.snoozed) return;
+        sendNotification(label, body, name);
+    }, n * 1000);
+
+    // End burst window after M seconds
+    t.freqWindow = setTimeout(() => {
+        clearInterval(t.freqBurst);
+        t.freqInWindow = false;
+    }, m * 1000);
+}
+
+// ═══════════════════════════════════════════════
+// Notification action handlers
+// ═══════════════════════════════════════════════
+
+/** User tapped "I understood" — turn off this timer */
+function handleUnderstood(name) {
+    if (!TIMER_NAMES.includes(name)) return;
+    const checkbox = document.getElementById(`tog-${name}`);
+    if (checkbox) checkbox.checked = false;
+    stopTimerCompletely(name);
+    timers[name].active = false;
+    console.log(`Timer "${name}" turned off by user (I understood).`);
+}
+
+/** User tapped "Snooze 10 min" — pause this timer for 10 minutes */
+function handleSnooze(name) {
+    if (!TIMER_NAMES.includes(name)) return;
+    const t = timers[name];
+    if (!t.active) return;
+
+    // Stop any active frequency burst
+    clearInterval(t.freqBurst);
+    clearTimeout(t.freqWindow);
+    t.freqInWindow = false;
+
+    t.snoozed = true;
+    document.getElementById(`card-${name}`)?.classList.add('snoozed');
+    updateDisplay(name);
+
+    clearTimeout(t.snoozeTimer);
+    t.snoozeTimer = setTimeout(() => {
+        t.snoozed = false;
+        t.remaining = t.interval;
+        document.getElementById(`card-${name}`)?.classList.remove('snoozed');
+        updateDisplay(name);
+        console.log(`Snooze over for "${name}", resuming.`);
+    }, 10 * 60 * 1000); // 10 minutes
+}
+
+// ═══════════════════════════════════════════════
+// Frequency Panel UI
+// ═══════════════════════════════════════════════
+function toggleFreq(name) {
+    const panel = document.getElementById(`freq-panel-${name}`);
+    const btn   = document.getElementById(`freq-btn-${name}`);
+    const open  = panel.classList.toggle('visible');
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+}
+
+function updateFreqHint(name) {
+    const n = parseInt(document.getElementById(`freq-n-${name}`)?.value || 0, 10);
+    const m = parseInt(document.getElementById(`freq-m-${name}`)?.value || 0, 10);
+    const hint = document.getElementById(`freq-hint-${name}`);
+    const enabled = document.getElementById(`freq-enabled-${name}`)?.checked;
+    timers[name].freqEnabled = !!enabled;
+
+    if (!hint) return;
+    if (!enabled) {
+        hint.textContent = 'Frequency mode is off. Reminder fires once per cycle.';
+        return;
+    }
+    if (n <= 0 || m <= 0) { hint.textContent = 'Enter valid values above.'; return; }
+    if (m <= n) { hint.textContent = 'Window (M) must be greater than repeat interval (N).'; return; }
+    const count = Math.floor(m / n);
+    hint.textContent = `Will remind every ${n} s for ${m} s (~${count} times), then stop until the next cycle.`;
+}
+
+// Also update hint live when inputs change
+document.addEventListener('DOMContentLoaded', () => {
+    TIMER_NAMES.forEach(name => {
+        document.getElementById(`freq-n-${name}`)?.addEventListener('input', () => updateFreqHint(name));
+        document.getElementById(`freq-m-${name}`)?.addEventListener('input', () => updateFreqHint(name));
+    });
+});
+
+// ═══════════════════════════════════════════════
+// Global Controls
+// ═══════════════════════════════════════════════
 async function startAll() {
-    // Request permission up front so timers fire notifications immediately
     await requestNotificationPermission();
-    ['blink', 'posture', 'stretch', 'screen'].forEach(name => {
-        const checkbox = document.getElementById(`tog-${name}`);
-        if (!checkbox.checked) {
-            checkbox.checked = true;
-            toggleTimer(name);
-        }
+    TIMER_NAMES.forEach(name => {
+        const cb = document.getElementById(`tog-${name}`);
+        if (cb && !cb.checked) { cb.checked = true; toggleTimer(name); }
     });
 }
 
 function resetAll() {
-    ['blink', 'posture', 'stretch', 'screen'].forEach(name => {
-        clearInterval(timers[name].ticker);
-        timers[name].active = false;
-        timers[name].remaining = timers[name].interval;
-        document.getElementById(`tog-${name}`).checked = false;
-        updateDisplay(name);
+    TIMER_NAMES.forEach(name => {
+        const cb = document.getElementById(`tog-${name}`);
+        if (cb) cb.checked = false;
+        stopTimerCompletely(name);
     });
 }
 
@@ -195,10 +432,10 @@ function adjustInterval(name, delta) {
 }
 
 function setIntervalFromInput(name) {
-    const val = document.getElementById(`inp-${name}`).value;
+    const val = document.getElementById(`inp-${name}`)?.value || '';
     const parts = val.split(':');
     if (parts.length === 2) {
-        const secs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        const secs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
         if (!isNaN(secs) && secs > 0) {
             timers[name].interval = secs;
             timers[name].remaining = secs;
@@ -207,16 +444,16 @@ function setIntervalFromInput(name) {
     }
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 // Camera Posture Detection
-// ─────────────────────────────────────────────
-let stream         = null;
-let cameraActive   = false;
-let detectionLoop  = null;
-let faceDetector   = null;   // Native FaceDetector API
-let blazeModel     = null;   // TensorFlow.js BlazeFace model
-let lastAlertTime  = 0;
-const ALERT_COOLDOWN = 30000; // 30 seconds between posture alerts
+// ═══════════════════════════════════════════════
+let stream        = null;
+let cameraActive  = false;
+let detectionLoop = null;
+let faceDetector  = null;
+let blazeModel    = null;
+let lastAlertTime = 0;
+const ALERT_COOLDOWN = 30000;
 
 async function toggleCamera() {
     cameraActive ? stopCamera() : await startCamera();
@@ -236,17 +473,15 @@ async function startCamera() {
         btn.classList.add('active');
         cameraActive = true;
 
-        // Initialise face detection backend
         await initFaceDetector();
 
         video.addEventListener('loadedmetadata', () => {
-            const canvas = document.getElementById('face-canvas');
-            canvas.width  = video.videoWidth  || 640;
-            canvas.height = video.videoHeight || 480;
+            const c = document.getElementById('face-canvas');
+            c.width  = video.videoWidth  || 640;
+            c.height = video.videoHeight || 480;
         });
 
         detectionLoop = setInterval(runDetection, 2000);
-
     } catch (err) {
         alert('Camera access denied or unavailable: ' + err.message);
     }
@@ -254,9 +489,8 @@ async function startCamera() {
 
 function stopCamera() {
     clearInterval(detectionLoop);
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    stream       = null;
-    cameraActive = false;
+    stream?.getTracks().forEach(t => t.stop());
+    stream = null; cameraActive = false;
     document.getElementById('camera-area').classList.remove('visible');
     const btn = document.getElementById('cam-btn');
     btn.textContent = 'Enable Camera';
@@ -265,28 +499,20 @@ function stopCamera() {
 }
 
 async function initFaceDetector() {
-    // Prefer native FaceDetector API (Chrome/Edge with flag)
     if ('FaceDetector' in window) {
         try {
             faceDetector = new FaceDetector({ fastMode: false, maxDetectedFaces: 1 });
-            document.getElementById('detection-info').textContent =
-                'Using browser Face Detection API.';
+            document.getElementById('detection-info').textContent = 'Using browser Face Detection API.';
             return;
-        } catch (_) { /* fall through */ }
+        } catch (_) {}
     }
-
-    // Fallback: TensorFlow.js BlazeFace
-    document.getElementById('detection-info').textContent =
-        'Loading TensorFlow.js BlazeFace model...';
+    document.getElementById('detection-info').textContent = 'Loading TensorFlow.js BlazeFace model...';
     try {
-        // blazeface is loaded via CDN <script> tag; wait until it is available
         await waitForTF();
         blazeModel = await blazeface.load();
-        document.getElementById('detection-info').textContent =
-            'Using TensorFlow.js BlazeFace model.';
+        document.getElementById('detection-info').textContent = 'Using TensorFlow.js BlazeFace model.';
     } catch (e) {
-        document.getElementById('detection-info').textContent =
-            'Face detection unavailable: ' + e.message;
+        document.getElementById('detection-info').textContent = 'Face detection unavailable: ' + e.message;
     }
 }
 
@@ -294,13 +520,9 @@ function waitForTF(timeout = 10000) {
     return new Promise((resolve, reject) => {
         const start = Date.now();
         (function check() {
-            if (typeof blazeface !== 'undefined' && typeof tf !== 'undefined') {
-                resolve();
-            } else if (Date.now() - start > timeout) {
-                reject(new Error('TF.js / BlazeFace did not load in time'));
-            } else {
-                setTimeout(check, 200);
-            }
+            if (typeof blazeface !== 'undefined' && typeof tf !== 'undefined') resolve();
+            else if (Date.now() - start > timeout) reject(new Error('TF.js/BlazeFace timed out'));
+            else setTimeout(check, 200);
         })();
     });
 }
@@ -308,27 +530,20 @@ function waitForTF(timeout = 10000) {
 async function runDetection() {
     const video = document.getElementById('webcam');
     if (!video || video.readyState < 2) return;
-
     const canvas = document.getElementById('face-canvas');
-    const ctx    = canvas.getContext('2d');
-    const vw     = video.videoWidth  || 640;
-    const vh     = video.videoHeight || 480;
-    canvas.width  = vw;
-    canvas.height = vh;
+    const ctx = canvas.getContext('2d');
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    canvas.width = vw; canvas.height = vh;
 
     if (faceDetector) {
-        // Native FaceDetector API
         try {
             const faces = await faceDetector.detect(video);
             if (!faces.length) { handleNoFace(ctx, vw, vh); return; }
             analyzePosture(faces[0].boundingBox, vw, vh, ctx);
-        } catch (_) {
-            await runBlazeFace(video, vw, vh, ctx);
-        }
-
+        } catch (_) { await runBlazeFace(video, vw, vh, ctx); }
     } else if (blazeModel) {
         await runBlazeFace(video, vw, vh, ctx);
-
     } else {
         setDot('face', 'warn');
         document.getElementById('val-face').textContent = 'Model loading...';
@@ -337,19 +552,12 @@ async function runDetection() {
 
 async function runBlazeFace(video, vw, vh, ctx) {
     try {
-        const predictions = await blazeModel.estimateFaces(video, false);
-        if (!predictions.length) { handleNoFace(ctx, vw, vh); return; }
-
-        const p = predictions[0];
-        // BlazeFace returns topLeft / bottomRight as [x, y] arrays
-        const x = p.topLeft[0];
-        const y = p.topLeft[1];
-        const w = p.bottomRight[0] - x;
-        const h = p.bottomRight[1] - y;
-        analyzePosture({ x, y, width: w, height: h }, vw, vh, ctx);
-    } catch (e) {
-        handleNoFace(ctx, vw, vh);
-    }
+        const preds = await blazeModel.estimateFaces(video, false);
+        if (!preds.length) { handleNoFace(ctx, vw, vh); return; }
+        const p = preds[0];
+        const x = p.topLeft[0], y = p.topLeft[1];
+        analyzePosture({ x, y, width: p.bottomRight[0] - x, height: p.bottomRight[1] - y }, vw, vh, ctx);
+    } catch (_) { handleNoFace(ctx, vw, vh); }
 }
 
 function handleNoFace(ctx, vw, vh) {
@@ -358,87 +566,55 @@ function handleNoFace(ctx, vw, vh) {
     document.getElementById('val-face').textContent     = 'Not detected';
     document.getElementById('val-distance').textContent = '-';
     document.getElementById('val-eyelevel').textContent = '-';
-    setDot('distance', '');
-    setDot('eyelevel', '');
+    setDot('distance', ''); setDot('eyelevel', '');
 }
 
 function analyzePosture(face, vw, vh, ctx) {
-    const faceW      = face.width;
-    const faceH      = face.height;
-    const faceCenterY = face.y + faceH / 2;
-    const faceRatio  = (faceW * faceH) / (vw * vh);
+    const { x, y, width: faceW, height: faceH } = face;
+    const faceCenterY = y + faceH / 2;
+    const faceRatio   = (faceW * faceH) / (vw * vh);
 
-    // Draw bounding box on overlay canvas
     ctx.clearRect(0, 0, vw, vh);
-    ctx.strokeStyle = '#4040cc';
-    ctx.lineWidth   = 2;
-    ctx.strokeRect(face.x, face.y, faceW, faceH);
+    ctx.strokeStyle = '#4040cc'; ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, faceW, faceH);
 
-    // Face detected
     setDot('face', 'ok');
     document.getElementById('val-face').textContent = 'Yes';
 
-    // ── Distance check ──
-    // Face occupying > 20% of frame = too close; < 2% = too far
     let distStatus, distText;
-    if (faceRatio > 0.20) {
-        distStatus = 'bad';
-        distText   = 'Too close';
-    } else if (faceRatio > 0.13) {
-        distStatus = 'warn';
-        distText   = 'Slightly close';
-    } else if (faceRatio < 0.02) {
-        distStatus = 'warn';
-        distText   = 'Too far away';
-    } else {
-        distStatus = 'ok';
-        distText   = 'Good distance';
-    }
+    if      (faceRatio > 0.20) { distStatus = 'bad';  distText = 'Too close'; }
+    else if (faceRatio > 0.13) { distStatus = 'warn'; distText = 'Slightly close'; }
+    else if (faceRatio < 0.02) { distStatus = 'warn'; distText = 'Too far away'; }
+    else                        { distStatus = 'ok';   distText = 'Good distance'; }
     setDot('distance', distStatus);
     document.getElementById('val-distance').textContent = distText;
 
-    // ── Eye-level check ──
-    // Face vertical center should sit in the 30%–55% band of the frame
     const relY = faceCenterY / vh;
     let eyeStatus, eyeText;
-    if (relY > 0.60) {
-        eyeStatus = 'bad';
-        eyeText   = 'Screen too high';
-    } else if (relY < 0.30) {
-        eyeStatus = 'bad';
-        eyeText   = 'Screen too low';
-    } else if (relY > 0.55) {
-        eyeStatus = 'warn';
-        eyeText   = 'Slightly high';
-    } else {
-        eyeStatus = 'ok';
-        eyeText   = 'Good eye level';
-    }
+    if      (relY > 0.60) { eyeStatus = 'bad';  eyeText = 'Screen too high'; }
+    else if (relY < 0.30) { eyeStatus = 'bad';  eyeText = 'Screen too low'; }
+    else if (relY > 0.55) { eyeStatus = 'warn'; eyeText = 'Slightly high'; }
+    else                   { eyeStatus = 'ok';   eyeText = 'Good eye level'; }
     setDot('eyelevel', eyeStatus);
     document.getElementById('val-eyelevel').textContent = eyeText;
 
-    // ── Fire push notification (max once per cooldown window) ──
     const now = Date.now();
     if (now - lastAlertTime > ALERT_COOLDOWN) {
         if (distStatus === 'bad') {
             lastAlertTime = now;
-            sendNotification(
-                'Screen Distance Alert',
-                'You are too close to the screen. Move back at least 50-70 cm.',
-                'posture-distance'
-            );
+            sendNotification('Screen Distance Alert', 'You are too close to the screen. Move back at least 50-70 cm.', 'posture-distance');
         } else if (eyeStatus === 'bad') {
             lastAlertTime = now;
             const body = relY > 0.60
-                ? 'Your screen appears too high. Lower it or adjust your chair.'
-                : 'Your screen appears too low. Raise it or sit up straighter.';
+                ? 'Your screen is too high. Lower it or adjust your chair.'
+                : 'Your screen is too low. Raise it or sit up straighter.';
             sendNotification('Eye Level Alert', body, 'posture-eyelevel');
         }
     }
 }
 
 function resetStatusDots() {
-    ['distance', 'eyelevel', 'face'].forEach(k => {
+    ['distance','eyelevel','face'].forEach(k => {
         document.getElementById(`dot-${k}`).className = 'status-dot';
     });
     document.getElementById('val-distance').textContent = 'Detecting...';
@@ -447,13 +623,5 @@ function resetStatusDots() {
 }
 
 function setDot(id, status) {
-    document.getElementById(`dot-${id}`).className =
-        'status-dot' + (status ? ' ' + status : '');
+    document.getElementById(`dot-${id}`).className = 'status-dot' + (status ? ' ' + status : '');
 }
-
-// ─────────────────────────────────────────────
-// Init on page load
-// ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    checkNotificationPermission();
-});

@@ -1,10 +1,8 @@
 // ─────────────────────────────────────────────
-// Screen Wellness Coach — Service Worker
+// Screen Wellness Coach — Service Worker v2
 // ─────────────────────────────────────────────
+const CACHE_NAME = 'wellness-coach-v2';
 
-const CACHE_NAME = 'wellness-coach-v1';
-
-// Assets to pre-cache on install
 const PRECACHE_ASSETS = [
     './',
     './index.html',
@@ -13,10 +11,9 @@ const PRECACHE_ASSETS = [
     './manifest.json',
     './icons/icon-192.png',
     './icons/icon-512.png',
-    // TF.js and BlazeFace are CDN-hosted; we cache them at runtime (see fetch handler)
 ];
 
-// ── Install: pre-cache core app shell ──────────────────────────
+// ── Install ────────────────────────────────────
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_ASSETS))
@@ -24,25 +21,20 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ── Activate: clean up old caches ──────────────────────────────
+// ── Activate ───────────────────────────────────
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys =>
-            Promise.all(
-                keys
-                    .filter(key => key !== CACHE_NAME)
-                    .map(key => caches.delete(key))
-            )
+            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
         )
     );
     self.clients.claim();
 });
 
-// ── Fetch: cache-first for same-origin, network-first for CDN ──
+// ── Fetch ──────────────────────────────────────
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
-    // Cache-first strategy for same-origin assets
     if (url.origin === self.location.origin) {
         event.respondWith(
             caches.match(event.request).then(cached => {
@@ -50,7 +42,7 @@ self.addEventListener('fetch', event => {
                 return fetch(event.request).then(response => {
                     if (!response || response.status !== 200) return response;
                     const clone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                    caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
                     return response;
                 });
             })
@@ -58,14 +50,14 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Network-first with cache fallback for CDN assets (TF.js, BlazeFace)
-    if (url.hostname.includes('jsdelivr.net') || url.hostname.includes('cdn.jsdelivr.net')) {
+    // CDN assets (TF.js, BlazeFace) — network first, cache fallback
+    if (url.hostname.includes('jsdelivr.net')) {
         event.respondWith(
             fetch(event.request)
                 .then(response => {
                     if (!response || response.status !== 200) return response;
                     const clone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                    caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
                     return response;
                 })
                 .catch(() => caches.match(event.request))
@@ -73,33 +65,54 @@ self.addEventListener('fetch', event => {
     }
 });
 
-// ── Push: handle incoming push messages ────────────────────────
-// (Used if you later integrate a real push server / VAPID keys)
+// ── Push (server-sent push, future use) ────────
 self.addEventListener('push', event => {
     let data = { title: 'Screen Wellness Coach', body: 'Time for a wellness check.' };
     try { data = event.data.json(); } catch (_) {}
-
     event.waitUntil(
         self.registration.showNotification(data.title, {
-            body:             data.body,
-            icon:             './icons/icon-192.png',
-            badge:            './icons/icon-192.png',
-            tag:              data.tag || 'wellness',
-            renotify:         true,
-            requireInteraction: false,
+            body:    data.body,
+            icon:    './icons/icon-192.png',
+            badge:   './icons/icon-192.png',
+            tag:     data.tag || 'wellness',
+            renotify: true,
+            actions: [
+                { action: 'understood', title: 'I understood' },
+                { action: 'snooze',     title: 'Snooze 10 min' }
+            ],
+            data: { timerName: data.tag || 'wellness' }
         })
     );
 });
 
-// ── Notification click: focus / open the app window ────────────
+// ── Notification click ─────────────────────────
+// Handles both action button taps and plain notification taps.
+// Posts a message back to all open app windows so app.js can
+// call handleUnderstood() or handleSnooze() on the correct timer.
 self.addEventListener('notificationclick', event => {
-    event.notification.close();
+    const notification = event.notification;
+    const action       = event.action;          // 'understood' | 'snooze' | '' (body tap)
+    const timerName    = notification.data?.timerName || '';
+
+    notification.close();
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-            for (const client of clientList) {
-                if (client.url && 'focus' in client) return client.focus();
+            // Post the action to every open window of the app
+            clientList.forEach(client => {
+                client.postMessage({ action: action || 'focus', timerName });
+            });
+
+            // If no window is open and the user tapped the notification body,
+            // open a new window
+            if (!clientList.length && (!action || action === 'focus')) {
+                return clients.openWindow('./');
             }
-            if (clients.openWindow) return clients.openWindow('./');
+
+            // Focus any existing window
+            for (const client of clientList) {
+                if ('focus' in client) return client.focus();
+            }
         })
     );
 });

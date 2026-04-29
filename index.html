@@ -16,12 +16,257 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- TensorFlow.js + BlazeFace model (face detection fallback) -->
+    <!-- TensorFlow.js + BlazeFace (face detection fallback) -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js" defer></script>
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════════════
+     SETUP WIZARD OVERLAY
+════════════════════════════════════════════════ -->
+<div id="wizard-overlay" role="dialog" aria-modal="true" aria-label="Setup guide">
+    <div class="wizard-box">
+
+        <!-- Step 1: Welcome -->
+        <div class="wizard-step active" id="step-1">
+            <div class="wizard-visual">
+                <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="15" y="10" width="90" height="58" rx="6" fill="#ebebf8" stroke="#4040cc" stroke-width="2"/>
+                    <rect x="22" y="17" width="76" height="44" rx="3" fill="#c8cdf5"/>
+                    <rect x="45" y="68" width="30" height="5" rx="2" fill="#4040cc" opacity="0.4"/>
+                    <rect x="35" y="73" width="50" height="4" rx="2" fill="#4040cc" opacity="0.3"/>
+                    <circle cx="60" cy="39" r="10" fill="#4040cc" opacity="0.7"/>
+                    <path d="M55 39 L59 43 L66 35" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2>Welcome to Screen Wellness Coach</h2>
+            <p>This app helps you build healthy screen habits with reminders for blinking, posture, stretching, and screen breaks.</p>
+            <p class="wizard-sub">This short guide takes about 60 seconds and shows you exactly how everything works.</p>
+            <div class="wizard-nav">
+                <span class="wizard-skip" onclick="closeWizard()">Skip guide</span>
+                <button class="btn-primary" onclick="wizardNext()">Get started</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Timer cards -->
+        <div class="wizard-step" id="step-2">
+            <div class="wizard-visual">
+                <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="8" y="8" width="50" height="74" rx="8" fill="#ebebf8" stroke="#4040cc" stroke-width="1.5"/>
+                    <rect x="62" y="8" width="50" height="74" rx="8" fill="#ebebf8" stroke="#4040cc" stroke-width="1.5"/>
+                    <!-- left card contents -->
+                    <rect x="14" y="16" width="18" height="10" rx="3" fill="#c8cdf5"/>
+                    <rect x="36" y="18" width="16" height="6" rx="2" fill="#ccc"/>
+                    <text x="33" y="43" font-size="14" font-weight="bold" fill="#3333bb" text-anchor="middle">0:20</text>
+                    <rect x="14" y="55" width="8" height="8" rx="2" fill="#4040cc" opacity="0.6"/>
+                    <rect x="26" y="57" width="16" height="4" rx="2" fill="#ddd"/>
+                    <rect x="46" y="55" width="8" height="8" rx="2" fill="#4040cc" opacity="0.6"/>
+                    <!-- right card contents -->
+                    <rect x="68" y="16" width="18" height="10" rx="3" fill="#c8cdf5"/>
+                    <rect x="90" y="18" width="16" height="6" rx="2" fill="#ccc"/>
+                    <text x="87" y="43" font-size="14" font-weight="bold" fill="#3333bb" text-anchor="middle">5:00</text>
+                    <rect x="68" y="55" width="8" height="8" rx="2" fill="#4040cc" opacity="0.6"/>
+                    <rect x="80" y="57" width="16" height="4" rx="2" fill="#ddd"/>
+                    <rect x="100" y="55" width="8" height="8" rx="2" fill="#4040cc" opacity="0.6"/>
+                    <!-- arrows pointing to - and + -->
+                    <path d="M18 72 L18 68" stroke="#4040cc" stroke-width="1.5" marker-end="url(#arr)"/>
+                    <path d="M50 72 L50 68" stroke="#4040cc" stroke-width="1.5" marker-end="url(#arr)"/>
+                    <defs><marker id="arr" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#4040cc"/></marker></defs>
+                </svg>
+            </div>
+            <h2>Your four reminder timers</h2>
+            <p>Each card counts down to the next reminder. Use the <strong>-</strong> and <strong>+</strong> buttons to shorten or lengthen the interval. Flip the toggle to activate a reminder.</p>
+            <ul class="wizard-list">
+                <li><strong>Blink</strong> — reminds you to blink every 20 seconds by default</li>
+                <li><strong>Posture</strong> — nudges you to sit up every 5 minutes</li>
+                <li><strong>Stretch</strong> — prompts a standing stretch every 20 minutes</li>
+                <li><strong>Screen</strong> — tells you to look away every 20 minutes</li>
+            </ul>
+            <div class="wizard-nav">
+                <button class="btn-secondary" onclick="wizardBack()">Back</button>
+                <button class="btn-primary" onclick="wizardNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Notification frequency -->
+        <div class="wizard-step" id="step-3">
+            <div class="wizard-visual">
+                <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+                    <!-- timeline bar -->
+                    <line x1="10" y1="55" x2="110" y2="55" stroke="#dde3f0" stroke-width="3" stroke-linecap="round"/>
+                    <!-- N markers -->
+                    <circle cx="20" cy="55" r="5" fill="#4040cc"/>
+                    <circle cx="45" cy="55" r="5" fill="#4040cc"/>
+                    <circle cx="70" cy="55" r="5" fill="#4040cc"/>
+                    <circle cx="95" cy="55" r="5" fill="#4040cc"/>
+                    <!-- M bracket -->
+                    <line x1="20" y1="68" x2="95" y2="68" stroke="#cc4040" stroke-width="2"/>
+                    <line x1="20" y1="64" x2="20" y2="72" stroke="#cc4040" stroke-width="2"/>
+                    <line x1="95" y1="64" x2="95" y2="72" stroke="#cc4040" stroke-width="2"/>
+                    <text x="57" y="82" font-size="8" fill="#cc4040" text-anchor="middle">M seconds window</text>
+                    <!-- N label -->
+                    <text x="32" y="50" font-size="7" fill="#4040cc" text-anchor="middle">N sec</text>
+                    <!-- bell icons -->
+                    <path d="M18,44 q0-4 4-4 q4,0 4,4 l1,6 h-10 z" fill="#4040cc" opacity="0.7"/>
+                    <path d="M43,44 q0-4 4-4 q4,0 4,4 l1,6 h-10 z" fill="#4040cc" opacity="0.7"/>
+                    <path d="M68,44 q0-4 4-4 q4,0 4,4 l1,6 h-10 z" fill="#4040cc" opacity="0.7"/>
+                </svg>
+            </div>
+            <h2>Notification frequency</h2>
+            <p>Each timer has a <strong>Frequency mode</strong> you can expand. Set how often (every N seconds) a reminder fires, and for how long (M seconds total window). The reminder repeats inside that window, then stops until the next cycle.</p>
+            <p class="wizard-sub">Example: remind every 30 s for the next 2 minutes — perfect for a persistent nudge without being overwhelming forever.</p>
+            <div class="wizard-nav">
+                <button class="btn-secondary" onclick="wizardBack()">Back</button>
+                <button class="btn-primary" onclick="wizardNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Notification actions -->
+        <div class="wizard-step" id="step-4">
+            <div class="wizard-visual">
+                <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+                    <!-- notification card -->
+                    <rect x="10" y="14" width="100" height="52" rx="8" fill="white" stroke="#dde3f0" stroke-width="1.5"/>
+                    <rect x="10" y="14" width="6" height="52" rx="3" fill="#4040cc"/>
+                    <rect x="22" y="22" width="50" height="6" rx="3" fill="#1a1a2e" opacity="0.7"/>
+                    <rect x="22" y="32" width="72" height="4" rx="2" fill="#ccc"/>
+                    <rect x="22" y="39" width="60" height="4" rx="2" fill="#ccc"/>
+                    <!-- action buttons -->
+                    <rect x="18" y="50" width="36" height="10" rx="4" fill="#22bb55"/>
+                    <text x="36" y="58" font-size="6.5" fill="white" text-anchor="middle">I understood</text>
+                    <rect x="60" y="50" width="36" height="10" rx="4" fill="#ffaa00"/>
+                    <text x="78" y="58" font-size="6.5" fill="white" text-anchor="middle">Snooze 10 min</text>
+                    <!-- arrow pointing to buttons -->
+                    <path d="M60 76 L60 68" stroke="#4040cc" stroke-width="1.5" stroke-dasharray="3,2"/>
+                    <text x="60" y="84" font-size="7" fill="#4040cc" text-anchor="middle">Tap to respond</text>
+                </svg>
+            </div>
+            <h2>Notification actions</h2>
+            <p>Every reminder notification carries two action buttons:</p>
+            <ul class="wizard-list">
+                <li><strong>I understood</strong> — marks this reminder as done and turns off that timer until you re-enable it</li>
+                <li><strong>Snooze 10 min</strong> — pauses that reminder for 10 minutes, then it resumes automatically</li>
+            </ul>
+            <p class="wizard-sub">If you ignore a notification, reminders continue on schedule — you stay in control.</p>
+            <div class="wizard-nav">
+                <button class="btn-secondary" onclick="wizardBack()">Back</button>
+                <button class="btn-primary" onclick="wizardNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Camera posture monitor -->
+        <div class="wizard-step" id="step-5">
+            <div class="wizard-visual">
+                <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+                    <!-- person silhouette -->
+                    <circle cx="60" cy="25" r="10" fill="#c8cdf5" stroke="#4040cc" stroke-width="1.5"/>
+                    <path d="M50 60 Q60 40 70 60" fill="#c8cdf5" stroke="#4040cc" stroke-width="1.5"/>
+                    <!-- distance arrow -->
+                    <line x1="30" y1="25" x2="48" y2="25" stroke="#ee3333" stroke-width="1.5" stroke-dasharray="3,2"/>
+                    <text x="18" y="28" font-size="7" fill="#ee3333">Far</text>
+                    <!-- eye level line -->
+                    <line x1="72" y1="25" x2="100" y2="25" stroke="#22bb55" stroke-width="1.5" stroke-dasharray="3,2"/>
+                    <text x="102" y="28" font-size="7" fill="#22bb55">OK</text>
+                    <!-- monitor outline -->
+                    <rect x="20" y="64" width="80" height="20" rx="4" fill="none" stroke="#4040cc" stroke-width="1.5" opacity="0.5"/>
+                    <text x="60" y="76" font-size="7" fill="#4040cc" text-anchor="middle">Your camera view</text>
+                    <!-- status dots -->
+                    <circle cx="26" cy="50" r="4" fill="#22bb55"/>
+                    <text x="33" y="53" font-size="7" fill="#444">Good distance</text>
+                    <circle cx="26" cy="60" r="4" fill="#ee3333"/>
+                    <text x="33" y="63" font-size="7" fill="#444">Too close — alert fired</text>
+                </svg>
+            </div>
+            <h2>Camera posture monitor</h2>
+            <p>Click <strong>Enable Camera</strong> to activate live monitoring. The app uses your webcam to check:</p>
+            <ul class="wizard-list">
+                <li><strong>Screen distance</strong> — are you too close or too far from your monitor?</li>
+                <li><strong>Eye level</strong> — is your screen at a healthy height for your neck?</li>
+            </ul>
+            <p class="wizard-sub">A push notification fires if a problem persists. Your video never leaves your device.</p>
+            <div class="wizard-nav">
+                <button class="btn-secondary" onclick="wizardBack()">Back</button>
+                <button class="btn-primary" onclick="wizardNext()">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 6: Accessibility -->
+        <div class="wizard-step" id="step-6">
+            <div class="wizard-visual">
+                <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+                    <!-- toolbar bar -->
+                    <rect x="10" y="30" width="100" height="30" rx="8" fill="#ebebf8" stroke="#4040cc" stroke-width="1.5"/>
+                    <!-- contrast button -->
+                    <rect x="18" y="38" width="28" height="14" rx="5" fill="#1a1a2e"/>
+                    <text x="32" y="48" font-size="7" fill="white" text-anchor="middle">Contrast</text>
+                    <!-- font button -->
+                    <rect x="52" y="38" width="28" height="14" rx="5" fill="#4040cc"/>
+                    <text x="66" y="48" font-size="7" fill="white" text-anchor="middle">A+ Font</text>
+                    <!-- guide button -->
+                    <rect x="86" y="38" width="16" height="14" rx="5" fill="#c8cdf5"/>
+                    <text x="94" y="48" font-size="7.5" fill="#4040cc" text-anchor="middle">?</text>
+                    <!-- labels -->
+                    <text x="32" y="26" font-size="6.5" fill="#888" text-anchor="middle">High contrast</text>
+                    <text x="66" y="26" font-size="6.5" fill="#888" text-anchor="middle">Larger text</text>
+                    <text x="94" y="26" font-size="6.5" fill="#888" text-anchor="middle">Guide</text>
+                </svg>
+            </div>
+            <h2>Accessibility controls</h2>
+            <p>The toolbar at the top of the page has two accessibility buttons available at all times:</p>
+            <ul class="wizard-list">
+                <li><strong>High Contrast</strong> — switches to a high-contrast dark theme for improved readability</li>
+                <li><strong>Larger Text</strong> — cycles through three font sizes (normal, large, extra large)</li>
+            </ul>
+            <div class="wizard-nav">
+                <button class="btn-secondary" onclick="wizardBack()">Back</button>
+                <button class="btn-primary" onclick="closeWizard()">Start using the app</button>
+            </div>
+        </div>
+
+        <!-- Progress dots -->
+        <div class="wizard-dots" aria-hidden="true">
+            <span class="dot active" id="dot-1"></span>
+            <span class="dot" id="dot-2"></span>
+            <span class="dot" id="dot-3"></span>
+            <span class="dot" id="dot-4"></span>
+            <span class="dot" id="dot-5"></span>
+            <span class="dot" id="dot-6"></span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ACCESSIBILITY TOOLBAR
+════════════════════════════════════════════════ -->
+<div id="a11y-bar" role="toolbar" aria-label="Accessibility controls">
+    <div class="a11y-inner">
+        <span class="a11y-label">For your Ease:</span>
+        <button id="btn-contrast" onclick="toggleContrast()" aria-pressed="false" title="Toggle high contrast mode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"/>
+            </svg>
+            High Contrast
+        </button>
+        <button id="btn-fontsize" onclick="cycleFontSize()" title="Increase font size">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
+            </svg>
+            <span id="fontsize-label">Larger Text</span>
+        </button>
+        <button id="btn-guide" onclick="openWizard()" title="Open setup guide">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Guide
+        </button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════ -->
 <header>
     <h1>Screen Wellness Coach</h1>
     <p>Stay healthy while working at your computer</p>
@@ -69,6 +314,7 @@
             <p class="detection-info" id="detection-info">Uses browser Face Detection API where available, TensorFlow.js BlazeFace otherwise.</p>
         </div>
     </div>
+
     <div id="notif-banner">
         <span>Notifications are blocked. Enable them to receive posture and wellness alerts.</span>
         <button onclick="requestNotificationPermission()">Enable Notifications</button>
@@ -83,7 +329,9 @@
 
 <!-- Timer Cards -->
 <div class="cards-grid">
-    <div class="card">
+
+    <!-- Blink -->
+    <div class="card" id="card-blink">
         <div class="card-header">
             <div class="card-info">
                 <div class="card-icon">
@@ -96,18 +344,42 @@
                     <p>Remind me to blink regularly</p>
                 </div>
             </div>
-            <label class="toggle"><input type="checkbox" id="tog-blink" onchange="toggleTimer('blink')"><span class="toggle-slider"></span></label>
+            <label class="toggle" aria-label="Enable blink reminder"><input type="checkbox" id="tog-blink" onchange="toggleTimer('blink')"><span class="toggle-slider"></span></label>
         </div>
         <div class="timer-display" id="disp-blink">0:20</div>
         <div class="timer-label">Next reminder in</div>
         <div class="timer-controls">
-            <button class="ctrl-btn" onclick="adjustInterval('blink',-10)">-</button>
-            <input class="ctrl-input" id="inp-blink" value="0:20" onchange="setIntervalFromInput('blink')">
-            <button class="ctrl-btn" onclick="adjustInterval('blink',10)">+</button>
+            <button class="ctrl-btn" aria-label="Decrease blink interval" onclick="adjustInterval('blink',-10)">-</button>
+            <input class="ctrl-input" id="inp-blink" value="0:20" aria-label="Blink interval" onchange="setIntervalFromInput('blink')">
+            <button class="ctrl-btn" aria-label="Increase blink interval" onclick="adjustInterval('blink',10)">+</button>
+        </div>
+        <div class="freq-section">
+            <button class="freq-toggle" onclick="toggleFreq('blink')" aria-expanded="false" id="freq-btn-blink">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                Frequency settings
+            </button>
+            <div class="freq-panel" id="freq-panel-blink">
+                <div class="freq-row">
+                    <label>Remind every</label>
+                    <input type="number" class="freq-input" id="freq-n-blink" value="20" min="5" max="3600" aria-label="Repeat every N seconds">
+                    <span>seconds</span>
+                </div>
+                <div class="freq-row">
+                    <label>For the next</label>
+                    <input type="number" class="freq-input" id="freq-m-blink" value="60" min="10" max="7200" aria-label="Total window M seconds">
+                    <span>seconds</span>
+                </div>
+                <p class="freq-hint" id="freq-hint-blink">Will remind every 20 s for 60 s, then stop until the next cycle.</p>
+                <label class="freq-mode-label">
+                    <input type="checkbox" id="freq-enabled-blink" onchange="updateFreqHint('blink')">
+                    Use frequency mode
+                </label>
+            </div>
         </div>
     </div>
 
-    <div class="card">
+    <!-- Posture -->
+    <div class="card" id="card-posture">
         <div class="card-header">
             <div class="card-info">
                 <div class="card-icon">
@@ -123,24 +395,47 @@
                     <p>Check and correct your posture</p>
                 </div>
             </div>
-            <label class="toggle"><input type="checkbox" id="tog-posture" onchange="toggleTimer('posture')"><span class="toggle-slider"></span></label>
+            <label class="toggle" aria-label="Enable posture check"><input type="checkbox" id="tog-posture" onchange="toggleTimer('posture')"><span class="toggle-slider"></span></label>
         </div>
         <div class="timer-display" id="disp-posture">5:00</div>
         <div class="timer-label">Next reminder in</div>
         <div class="timer-controls">
-            <button class="ctrl-btn" onclick="adjustInterval('posture',-30)">-</button>
-            <input class="ctrl-input" id="inp-posture" value="5:00" onchange="setIntervalFromInput('posture')">
-            <button class="ctrl-btn" onclick="adjustInterval('posture',30)">+</button>
+            <button class="ctrl-btn" aria-label="Decrease posture interval" onclick="adjustInterval('posture',-30)">-</button>
+            <input class="ctrl-input" id="inp-posture" value="5:00" aria-label="Posture interval" onchange="setIntervalFromInput('posture')">
+            <button class="ctrl-btn" aria-label="Increase posture interval" onclick="adjustInterval('posture',30)">+</button>
+        </div>
+        <div class="freq-section">
+            <button class="freq-toggle" onclick="toggleFreq('posture')" aria-expanded="false" id="freq-btn-posture">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                Frequency settings
+            </button>
+            <div class="freq-panel" id="freq-panel-posture">
+                <div class="freq-row">
+                    <label>Remind every</label>
+                    <input type="number" class="freq-input" id="freq-n-posture" value="60" min="5" max="3600" aria-label="Repeat every N seconds">
+                    <span>seconds</span>
+                </div>
+                <div class="freq-row">
+                    <label>For the next</label>
+                    <input type="number" class="freq-input" id="freq-m-posture" value="300" min="10" max="7200" aria-label="Total window M seconds">
+                    <span>seconds</span>
+                </div>
+                <p class="freq-hint" id="freq-hint-posture">Will remind every 60 s for 300 s, then stop until the next cycle.</p>
+                <label class="freq-mode-label">
+                    <input type="checkbox" id="freq-enabled-posture" onchange="updateFreqHint('posture')">
+                    Use frequency mode
+                </label>
+            </div>
         </div>
     </div>
 
-    <div class="card">
+    <!-- Stretch -->
+    <div class="card" id="card-stretch">
         <div class="card-header">
             <div class="card-info">
                 <div class="card-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="5" r="3"/><path d="M12 8v4M8.5 11c.5 2 1 3.5 1 5H14.5c0-1.5.5-3 1-5"/>
-                        <path d="M9.5 16c-.5 1.5-.5 3 0 4.5M14.5 16c.5 1.5.5 3 0 4.5"/>
+                        <circle cx="12" cy="4" r="2"/><path d="M15 8H9l-2 7h10z"/><path d="M9 15l-1 6M15 15l1 6M9 11l-3 2M15 11l3 2"/>
                     </svg>
                 </div>
                 <div>
@@ -148,18 +443,42 @@
                     <p>Take a break to stretch</p>
                 </div>
             </div>
-            <label class="toggle"><input type="checkbox" id="tog-stretch" onchange="toggleTimer('stretch')"><span class="toggle-slider"></span></label>
+            <label class="toggle" aria-label="Enable stretch break"><input type="checkbox" id="tog-stretch" onchange="toggleTimer('stretch')"><span class="toggle-slider"></span></label>
         </div>
         <div class="timer-display" id="disp-stretch">20:00</div>
         <div class="timer-label">Next reminder in</div>
         <div class="timer-controls">
-            <button class="ctrl-btn" onclick="adjustInterval('stretch',-60)">-</button>
-            <input class="ctrl-input" id="inp-stretch" value="20:00" onchange="setIntervalFromInput('stretch')">
-            <button class="ctrl-btn" onclick="adjustInterval('stretch',60)">+</button>
+            <button class="ctrl-btn" aria-label="Decrease stretch interval" onclick="adjustInterval('stretch',-60)">-</button>
+            <input class="ctrl-input" id="inp-stretch" value="20:00" aria-label="Stretch interval" onchange="setIntervalFromInput('stretch')">
+            <button class="ctrl-btn" aria-label="Increase stretch interval" onclick="adjustInterval('stretch',60)">+</button>
+        </div>
+        <div class="freq-section">
+            <button class="freq-toggle" onclick="toggleFreq('stretch')" aria-expanded="false" id="freq-btn-stretch">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                Frequency settings
+            </button>
+            <div class="freq-panel" id="freq-panel-stretch">
+                <div class="freq-row">
+                    <label>Remind every</label>
+                    <input type="number" class="freq-input" id="freq-n-stretch" value="120" min="5" max="3600" aria-label="Repeat every N seconds">
+                    <span>seconds</span>
+                </div>
+                <div class="freq-row">
+                    <label>For the next</label>
+                    <input type="number" class="freq-input" id="freq-m-stretch" value="600" min="10" max="7200" aria-label="Total window M seconds">
+                    <span>seconds</span>
+                </div>
+                <p class="freq-hint" id="freq-hint-stretch">Will remind every 120 s for 600 s, then stop until the next cycle.</p>
+                <label class="freq-mode-label">
+                    <input type="checkbox" id="freq-enabled-stretch" onchange="updateFreqHint('stretch')">
+                    Use frequency mode
+                </label>
+            </div>
         </div>
     </div>
 
-    <div class="card">
+    <!-- Screen -->
+    <div class="card" id="card-screen">
         <div class="card-header">
             <div class="card-info">
                 <div class="card-icon">
@@ -172,17 +491,41 @@
                     <p>Look away from the screen</p>
                 </div>
             </div>
-            <label class="toggle"><input type="checkbox" id="tog-screen" onchange="toggleTimer('screen')"><span class="toggle-slider"></span></label>
+            <label class="toggle" aria-label="Enable screen break"><input type="checkbox" id="tog-screen" onchange="toggleTimer('screen')"><span class="toggle-slider"></span></label>
         </div>
         <div class="timer-display" id="disp-screen">20:00</div>
         <div class="timer-label">Next reminder in</div>
         <div class="timer-controls">
-            <button class="ctrl-btn" onclick="adjustInterval('screen',-60)">-</button>
-            <input class="ctrl-input" id="inp-screen" value="20:00" onchange="setIntervalFromInput('screen')">
-            <button class="ctrl-btn" onclick="adjustInterval('screen',60)">+</button>
+            <button class="ctrl-btn" aria-label="Decrease screen break interval" onclick="adjustInterval('screen',-60)">-</button>
+            <input class="ctrl-input" id="inp-screen" value="20:00" aria-label="Screen break interval" onchange="setIntervalFromInput('screen')">
+            <button class="ctrl-btn" aria-label="Increase screen break interval" onclick="adjustInterval('screen',60)">+</button>
+        </div>
+        <div class="freq-section">
+            <button class="freq-toggle" onclick="toggleFreq('screen')" aria-expanded="false" id="freq-btn-screen">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                Frequency settings
+            </button>
+            <div class="freq-panel" id="freq-panel-screen">
+                <div class="freq-row">
+                    <label>Remind every</label>
+                    <input type="number" class="freq-input" id="freq-n-screen" value="120" min="5" max="3600" aria-label="Repeat every N seconds">
+                    <span>seconds</span>
+                </div>
+                <div class="freq-row">
+                    <label>For the next</label>
+                    <input type="number" class="freq-input" id="freq-m-screen" value="600" min="10" max="7200" aria-label="Total window M seconds">
+                    <span>seconds</span>
+                </div>
+                <p class="freq-hint" id="freq-hint-screen">Will remind every 120 s for 600 s, then stop until the next cycle.</p>
+                <label class="freq-mode-label">
+                    <input type="checkbox" id="freq-enabled-screen" onchange="updateFreqHint('screen')">
+                    Use frequency mode
+                </label>
+            </div>
         </div>
     </div>
-</div>
+
+</div><!-- /cards-grid -->
 
 <script src="app.js"></script>
 </body>
