@@ -42,9 +42,8 @@ body.hc {
     --bad:      #ff4444;
 }
 
-/* ── Font size scales ── */
-body.fs-lg   { --fs-base: 1.125rem; }
-body.fs-xl   { --fs-base: 1.28rem;  }
+/* ── Font size scales — controlled by JS setting font-size on <html> ── */
+/* No CSS classes needed; all rem units scale automatically */
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -521,34 +520,69 @@ body.hc .card-icon { background: var(--surface2); }
 .card.snoozed .card-header { opacity: 0.6; }
 
 /* ══════════════════════════════════════════
-   Mobile Responsiveness
+   Responsive — tablet (≤700px)
+══════════════════════════════════════════ */
+@media (max-width: 700px) {
+    .cards-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ══════════════════════════════════════════
+   Responsive — mobile (≤540px)
 ══════════════════════════════════════════ */
 @media (max-width: 540px) {
-    header { padding: 20px 16px 16px; }
-    header h1 { font-size: 1.45rem; }
+    /* Page */
+    header { padding: 16px 14px 14px; }
+    header h1 { font-size: 1.4rem; }
     header p  { font-size: 0.85rem; }
 
-    #posture-monitor { margin: 0 12px 22px; padding: 16px; }
-
-    .monitor-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    .camera-toggle  { width: 100%; text-align: center; padding: 10px; font-size: 0.9rem; }
+    /* Posture monitor */
+    #posture-monitor { margin: 0 10px 18px; padding: 14px; }
+    .monitor-header  { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .camera-toggle   { width: 100%; text-align: center; padding: 10px; }
 
     .camera-area.visible { flex-direction: column; align-items: stretch; }
-    .video-wrapper { width: 100%; }
-    #webcam       { width: 100%; height: auto; aspect-ratio: 4 / 3; }
-    #face-canvas  { width: 100%; height: 100%; }
+    .video-wrapper  { width: 100%; }
+    #webcam         { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+    #face-canvas    { width: 100%; height: 100%; }
     .posture-status-panel { width: 100%; }
-    .status-item  { padding: 9px 12px; }
-    .status-label { font-size: 0.82rem; }
-    .status-value { font-size: 0.78rem; }
+    .status-item    { padding: 8px 10px; }
+    .status-label   { font-size: 0.8rem; }
+    .status-value   { font-size: 0.75rem; }
 
-    .cards-grid { grid-template-columns: 1fr; padding: 0 12px; }
+    /* Cards */
+    .cards-grid { grid-template-columns: 1fr; padding: 0 10px; }
+    .card       { padding: 18px 16px; }
 
-    .btn-row { padding: 0 12px; }
-    .btn-primary, .btn-secondary { padding: 11px 20px; font-size: 0.92rem; }
+    /* Buttons */
+    .btn-row { padding: 0 10px; gap: 10px; }
+    .btn-primary, .btn-secondary { padding: 10px 18px; font-size: 0.9rem; }
 
-    .a11y-label { display: none; }
+    /* Accessibility bar */
+    .a11y-label  { display: none; }
+    #a11y-bar    { padding: 7px 12px; }
+    #a11y-bar button { padding: 5px 9px; font-size: 0.75rem; gap: 4px; }
 
-    .wizard-box { padding: 24px 18px 18px; }
-    .wizard-box h2 { font-size: 1.1rem; }
+    /* Frequency panel */
+    .freq-row        { flex-wrap: wrap; gap: 5px; }
+    .freq-row label  { min-width: unset; width: 100%; }
+    .freq-input      { width: 80px; }
+
+    /* ── Wizard — key mobile fixes ── */
+    #wizard-overlay  { padding: 10px; align-items: flex-end; }
+    .wizard-box      {
+        padding: 20px 16px 16px;
+        border-radius: 18px 18px 12px 12px;
+        max-height: 92vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .wizard-visual   { max-width: 130px; margin-bottom: 16px; }
+    .wizard-box h2   { font-size: 1.05rem; }
+    .wizard-box p    { font-size: 0.82rem; }
+    .wizard-list li  { font-size: 0.8rem; padding: 7px 10px; }
+    .wizard-nav      { flex-wrap: wrap; gap: 8px; }
+    .wizard-nav .btn-primary,
+    .wizard-nav .btn-secondary { flex: 1; text-align: center; padding: 10px 12px; font-size: 0.88rem; }
+    .wizard-skip     { width: 100%; text-align: center; order: 3; margin: 4px 0 0; }
+    .wizard-dots     { margin-top: 14px; }
 }

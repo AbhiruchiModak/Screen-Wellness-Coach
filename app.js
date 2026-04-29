@@ -74,9 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════
 // Accessibility — High Contrast & Font Size
 // ═══════════════════════════════════════════════
-const FONT_SIZES = ['', 'fs-lg', 'fs-xl'];
+// Font size steps in px applied directly to <html> so every rem scales
+const FONT_SIZE_STEPS  = [16, 20, 24];          // px values: normal → large → extra-large
+const FONTSIZE_LABELS  = ['Larger Text', 'Extra Large', 'Normal Text'];
 let fontSizeIdx = 0;
-const FONTSIZE_LABELS = ['Larger Text', 'Extra Large', 'Normal Text'];
+
+function applyFontSize(idx) {
+    document.documentElement.style.fontSize = FONT_SIZE_STEPS[idx] + 'px';
+}
 
 function toggleContrast() {
     const on = document.body.classList.toggle('hc');
@@ -87,9 +92,8 @@ function toggleContrast() {
 }
 
 function cycleFontSize() {
-    document.body.classList.remove(FONT_SIZES[fontSizeIdx]);
-    fontSizeIdx = (fontSizeIdx + 1) % FONT_SIZES.length;
-    if (FONT_SIZES[fontSizeIdx]) document.body.classList.add(FONT_SIZES[fontSizeIdx]);
+    fontSizeIdx = (fontSizeIdx + 1) % FONT_SIZE_STEPS.length;
+    applyFontSize(fontSizeIdx);
     document.getElementById('fontsize-label').textContent = FONTSIZE_LABELS[fontSizeIdx];
     localStorage.setItem('fsIdx', fontSizeIdx);
 }
@@ -102,9 +106,9 @@ function cycleFontSize() {
         if (btn) { btn.setAttribute('aria-pressed', 'true'); btn.classList.add('on'); }
     }
     const saved = parseInt(localStorage.getItem('fsIdx') || '0', 10);
-    if (saved > 0 && saved < FONT_SIZES.length) {
+    if (saved > 0 && saved < FONT_SIZE_STEPS.length) {
         fontSizeIdx = saved;
-        document.body.classList.add(FONT_SIZES[fontSizeIdx]);
+        applyFontSize(fontSizeIdx);
         const lbl = document.getElementById('fontsize-label');
         if (lbl) lbl.textContent = FONTSIZE_LABELS[fontSizeIdx];
     }
@@ -152,7 +156,8 @@ function getSwReg() {
 function sendNotification(title, body, tag) {
     if (!notifAllowed()) { console.warn('Notification skipped — no permission.'); return; }
 
-    const options = {
+    // SW notifications support actions; plain Notification() does not.
+    const swOptions = {
         body,
         tag,
         icon:               'icons/icon-192.png',
@@ -160,7 +165,6 @@ function sendNotification(title, body, tag) {
         renotify:           true,
         requireInteraction: false,
         silent:             false,
-        // Action buttons (supported in SW notifications on Android/desktop Chrome)
         actions: [
             { action: 'understood', title: 'I understood' },
             { action: 'snooze',     title: 'Snooze 10 min' }
@@ -168,14 +172,23 @@ function sendNotification(title, body, tag) {
         data: { timerName: tag }
     };
 
+    // Plain Notification() does not accept actions or data — stripped version only
+    const plainOptions = {
+        body,
+        tag,
+        icon:               'icons/icon-192.png',
+        renotify:           true,
+        silent:             false,
+    };
+
     getSwReg().then(swReg => {
         if (swReg && typeof swReg.showNotification === 'function') {
-            swReg.showNotification(title, options).catch(err => {
+            swReg.showNotification(title, swOptions).catch(err => {
                 console.warn('SW notification failed, using fallback:', err);
-                plainNotif(title, options);
+                plainNotif(title, plainOptions);
             });
         } else {
-            plainNotif(title, options);
+            plainNotif(title, plainOptions);
         }
     });
 }
@@ -206,12 +219,13 @@ TIMER_NAMES.forEach(name => {
         active:       false,
         ticker:       null,
         // Frequency mode
-        freqEnabled:  false,
-        freqN:        timerDefaults[name].interval,  // repeat every N seconds
-        freqM:        timerDefaults[name].interval * 3, // for M seconds total
-        freqWindow:   null,   // setTimeout handle for end-of-window
-        freqInWindow: false,  // currently inside a frequency burst window
-        freqBurst:    null,   // setInterval handle for the burst
+        freqEnabled:      false,
+        freqN:            timerDefaults[name].interval,
+        freqM:            timerDefaults[name].interval * 3,
+        freqWindow:       null,
+        freqInWindow:     false,
+        freqWindowCount:  0,
+        freqWindowSecs:   0,
         // Snooze
         snoozed:      false,
         snoozeTimer:  null,
@@ -279,12 +293,12 @@ function stopTimerCompletely(name) {
     const t = timers[name];
     clearInterval(t.ticker);
     clearTimeout(t.snoozeTimer);
-    clearInterval(t.freqBurst);
     clearTimeout(t.freqWindow);
-    t.active = false;
-    t.snoozed = false;
+    t.active       = false;
+    t.snoozed      = false;
     t.freqInWindow = false;
-    t.remaining = t.interval;
+    t.freqWindowCount = 0;
+    t.remaining    = t.interval;
     document.getElementById(`card-${name}`)?.classList.remove('snoozed');
     updateDisplay(name);
 }
@@ -293,40 +307,25 @@ function fireReminder(name) {
     const t = timers[name];
     const { label, body } = timerDefaults[name];
 
-    if (t.freqEnabled && !t.freqInWindow) {
-        // Enter frequency burst window
-        startFreqBurst(name);
-    } else if (!t.freqEnabled) {
+    if (t.freqEnabled) {
+        // In freq mode the ticker already fires every freqN seconds (t.interval === freqN).
+        // Each tick IS one notification. We count elapsed time to stop after freqM seconds.
+        if (!t.freqInWindow) {
+            // First notification — open the window
+            t.freqInWindow    = true;
+            t.freqWindowCount = 0;
+            t.freqWindowSecs  = t.freqM; // total seconds for the window
+            clearTimeout(t.freqWindow);
+            t.freqWindow = setTimeout(() => {
+                t.freqInWindow = false;
+                t.freqWindowCount = 0;
+            }, t.freqM * 1000);
+        }
+        // Always send on each tick inside the window
+        sendNotification(label, body, name);
+    } else {
         sendNotification(label, body, name);
     }
-    // If freqEnabled and already in window, burst handles its own notifications
-}
-
-// ═══════════════════════════════════════════════
-// Frequency Mode — burst window logic
-// ═══════════════════════════════════════════════
-function startFreqBurst(name) {
-    const t = timers[name];
-    const n = Math.max(5, parseInt(document.getElementById(`freq-n-${name}`)?.value || t.freqN, 10));
-    const m = Math.max(n + 1, parseInt(document.getElementById(`freq-m-${name}`)?.value || t.freqM, 10));
-
-    t.freqInWindow = true;
-    const { label, body } = timerDefaults[name];
-
-    // Fire immediately on window start
-    sendNotification(label, body, name);
-
-    // Then repeat every N seconds
-    t.freqBurst = setInterval(() => {
-        if (!t.freqInWindow || t.snoozed) return;
-        sendNotification(label, body, name);
-    }, n * 1000);
-
-    // End burst window after M seconds
-    t.freqWindow = setTimeout(() => {
-        clearInterval(t.freqBurst);
-        t.freqInWindow = false;
-    }, m * 1000);
 }
 
 // ═══════════════════════════════════════════════
@@ -380,28 +379,61 @@ function toggleFreq(name) {
 }
 
 function updateFreqHint(name) {
-    const n = parseInt(document.getElementById(`freq-n-${name}`)?.value || 0, 10);
-    const m = parseInt(document.getElementById(`freq-m-${name}`)?.value || 0, 10);
-    const hint = document.getElementById(`freq-hint-${name}`);
-    const enabled = document.getElementById(`freq-enabled-${name}`)?.checked;
-    timers[name].freqEnabled = !!enabled;
+    const nEl      = document.getElementById(`freq-n-${name}`);
+    const mEl      = document.getElementById(`freq-m-${name}`);
+    const hint     = document.getElementById(`freq-hint-${name}`);
+    const enabledEl = document.getElementById(`freq-enabled-${name}`);
+    if (!nEl || !mEl || !hint || !enabledEl) return;
 
-    if (!hint) return;
-    if (!enabled) {
-        hint.textContent = 'Frequency mode is off. Reminder fires once per cycle.';
-        return;
+    const n       = Math.max(5, parseInt(nEl.value, 10) || 5);
+    const m       = Math.max(n + 1, parseInt(mEl.value, 10) || n + 1);
+    const enabled = enabledEl.checked;
+
+    // --- Immediately sync timer state ---
+    const t = timers[name];
+    t.freqEnabled = enabled;
+    t.freqN       = n;
+    t.freqM       = m;
+
+    if (enabled) {
+        // The main ticker interval becomes N seconds (fires every N s)
+        t.interval = n;
+        hint.textContent = `Reminder every ${n}s, repeated for ${m}s (~${Math.floor(m / n)} times) per cycle.`;
+    } else {
+        // Restore default interval from timerDefaults
+        t.interval = timerDefaults[name].interval;
+        hint.textContent = 'Frequency mode off. Reminder fires once per cycle.';
     }
-    if (n <= 0 || m <= 0) { hint.textContent = 'Enter valid values above.'; return; }
-    if (m <= n) { hint.textContent = 'Window (M) must be greater than repeat interval (N).'; return; }
-    const count = Math.floor(m / n);
-    hint.textContent = `Will remind every ${n} s for ${m} s (~${count} times), then stop until the next cycle.`;
+
+    // If the timer is currently running, restart it with the new interval
+    if (t.active) {
+        clearInterval(t.ticker);
+        clearTimeout(t.freqWindow);
+        t.freqInWindow    = false;
+        t.freqWindowCount = 0;
+        t.remaining       = t.interval;
+        updateDisplay(name);
+        t.ticker = setInterval(() => {
+            if (t.snoozed) return;
+            t.remaining--;
+            if (t.remaining <= 0) {
+                fireReminder(name);
+                t.remaining = t.interval;
+            }
+            updateDisplay(name);
+        }, 1000);
+    } else {
+        t.remaining = t.interval;
+        updateDisplay(name);
+    }
 }
 
-// Also update hint live when inputs change
+// Wire up live input listeners after DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     TIMER_NAMES.forEach(name => {
         document.getElementById(`freq-n-${name}`)?.addEventListener('input', () => updateFreqHint(name));
         document.getElementById(`freq-m-${name}`)?.addEventListener('input', () => updateFreqHint(name));
+        document.getElementById(`freq-enabled-${name}`)?.addEventListener('change', () => updateFreqHint(name));
     });
 });
 
