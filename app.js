@@ -12,70 +12,100 @@ if ('serviceWorker' in navigator) {
 // ─────────────────────────────────────────────
 // Push Notification Setup
 // ─────────────────────────────────────────────
-let notifGranted = false;
 
+function notifSupported() {
+    return 'Notification' in window;
+}
+
+function notifAllowed() {
+    return notifSupported() && Notification.permission === 'granted';
+}
+
+// Request permission — called from the banner button and from startAll().
 async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
+    if (!notifSupported()) {
         console.warn('Notifications not supported in this browser.');
         return false;
     }
+    if (Notification.permission === 'denied') {
+        alert('Notification permission is blocked. Please enable it in your browser site settings, then reload the page.');
+        return false;
+    }
     if (Notification.permission === 'granted') {
-        notifGranted = true;
         hideBanner();
         return true;
     }
-    if (Notification.permission === 'denied') {
-        console.warn('Notification permission denied by user.');
-        return false;
-    }
+    // 'default' state — prompt the user
     const result = await Notification.requestPermission();
-    notifGranted = result === 'granted';
-    if (notifGranted) hideBanner();
-    return notifGranted;
+    if (result === 'granted') { hideBanner(); return true; }
+    return false;
 }
 
+// Show the banner unless permission is already granted.
 function checkNotificationPermission() {
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'granted') {
-        showBanner();
-    } else {
-        notifGranted = true;
-    }
+    if (!notifSupported()) return;
+    if (Notification.permission !== 'granted') showBanner();
 }
 
 function showBanner() {
-    const banner = document.getElementById('notif-banner');
-    if (banner) banner.classList.add('visible');
+    const b = document.getElementById('notif-banner');
+    if (b) b.classList.add('visible');
 }
-
 function hideBanner() {
-    const banner = document.getElementById('notif-banner');
-    if (banner) banner.classList.remove('visible');
+    const b = document.getElementById('notif-banner');
+    if (b) b.classList.remove('visible');
 }
 
 /**
- * Send a push notification via the Service Worker (so it appears
- * as a native OS notification even when the tab is in background).
- * Falls back to a plain Notification() when SW is not ready.
+ * Get the active SW registration with a hard 2 s timeout so we never
+ * hang on file:// origins or misconfigured servers.
  */
-async function sendNotification(title, body, tag) {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+function getSwReg() {
+    if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+    return Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(resolve => setTimeout(() => resolve(null), 2000))
+    ]).catch(() => null);
+}
 
-    const swReg = await navigator.serviceWorker.ready.catch(() => null);
-
-    if (swReg && swReg.showNotification) {
-        swReg.showNotification(title, {
-            body,
-            tag: tag || 'wellness',
-            icon: 'icons/icon-192.png',
-            badge: 'icons/icon-192.png',
-            renotify: true,
-            requireInteraction: false
-        });
-    } else {
-        // Fallback: plain Notification API
-        new Notification(title, { body, icon: 'icons/icon-192.png' });
+/**
+ * Fire a notification. Uses SW showNotification (visible even when the tab
+ * is backgrounded / screen is off) when available, plain Notification() as
+ * fallback. Deliberately NOT async at the call-site so callers don't need
+ * to await it; all errors are handled internally.
+ */
+function sendNotification(title, body, tag) {
+    // Always re-check at fire time — permission may have been granted after load
+    if (!notifAllowed()) {
+        console.warn('Notification skipped — permission not granted.');
+        return;
     }
+
+    const options = {
+        body,
+        tag:                tag || 'wellness',
+        icon:               'icons/icon-192.png',
+        badge:              'icons/icon-192.png',
+        renotify:           true,
+        requireInteraction: false,
+        silent:             false,
+    };
+
+    getSwReg().then(swReg => {
+        if (swReg && typeof swReg.showNotification === 'function') {
+            swReg.showNotification(title, options).catch(err => {
+                console.warn('SW showNotification failed, using fallback:', err);
+                plainNotif(title, options);
+            });
+        } else {
+            plainNotif(title, options);
+        }
+    });
+}
+
+function plainNotif(title, options) {
+    try { new Notification(title, options); }
+    catch (err) { console.warn('Notification() failed:', err); }
 }
 
 // ─────────────────────────────────────────────
@@ -111,6 +141,9 @@ function toggleTimer(name) {
     t.active = document.getElementById(`tog-${name}`).checked;
 
     if (t.active) {
+        // Ensure we have notification permission whenever a timer is turned on
+        if (!notifAllowed()) requestNotificationPermission();
+
         t.remaining = t.interval;
         t.ticker = setInterval(() => {
             t.remaining--;
@@ -132,8 +165,9 @@ function fireReminder(name) {
     sendNotification(title, body, name);
 }
 
-function startAll() {
-    checkNotificationPermission();
+async function startAll() {
+    // Request permission up front so timers fire notifications immediately
+    await requestNotificationPermission();
     ['blink', 'posture', 'stretch', 'screen'].forEach(name => {
         const checkbox = document.getElementById(`tog-${name}`);
         if (!checkbox.checked) {
