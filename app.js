@@ -12,19 +12,25 @@ if ('serviceWorker' in navigator) {
 }
 
 // ═══════════════════════════════════════════════
-// Listen for messages from the Service Worker
-// (handles "I understood" and "Snooze" actions)
+// Listen for notification action messages from the Service Worker
+// Uses BroadcastChannel (primary) + serviceWorker message event (fallback)
 // ═══════════════════════════════════════════════
+function handleSwMessage(data) {
+    const { action, timerName } = data || {};
+    if (!timerName || !TIMER_NAMES.includes(timerName)) return;
+    if (action === 'understood') handleUnderstood(timerName);
+    else if (action === 'snooze') handleSnooze(timerName);
+}
+
+// BroadcastChannel — works even when the page is not a controlled SW client
+if (typeof BroadcastChannel !== 'undefined') {
+    const bc = new BroadcastChannel('wellness-actions');
+    bc.addEventListener('message', e => handleSwMessage(e.data));
+}
+
+// serviceWorker postMessage fallback
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', event => {
-        const { action, timerName } = event.data || {};
-        if (!timerName) return;
-        if (action === 'understood') {
-            handleUnderstood(timerName);
-        } else if (action === 'snooze') {
-            handleSnooze(timerName);
-        }
-    });
+    navigator.serviceWorker.addEventListener('message', e => handleSwMessage(e.data));
 }
 
 // ═══════════════════════════════════════════════
@@ -308,20 +314,20 @@ function fireReminder(name) {
     const { label, body } = timerDefaults[name];
 
     if (t.freqEnabled) {
-        // In freq mode the ticker already fires every freqN seconds (t.interval === freqN).
-        // Each tick IS one notification. We count elapsed time to stop after freqM seconds.
         if (!t.freqInWindow) {
-            // First notification — open the window
+            // Open the window
             t.freqInWindow    = true;
             t.freqWindowCount = 0;
-            t.freqWindowSecs  = t.freqM; // total seconds for the window
             clearTimeout(t.freqWindow);
             t.freqWindow = setTimeout(() => {
-                t.freqInWindow = false;
+                // M seconds elapsed — stop this timer entirely
+                t.freqInWindow    = false;
                 t.freqWindowCount = 0;
+                const cb = document.getElementById(`tog-${name}`);
+                if (cb) cb.checked = false;
+                stopTimerCompletely(name);
             }, t.freqM * 1000);
         }
-        // Always send on each tick inside the window
         sendNotification(label, body, name);
     } else {
         sendNotification(label, body, name);

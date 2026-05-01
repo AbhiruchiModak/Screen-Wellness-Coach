@@ -87,32 +87,35 @@ self.addEventListener('push', event => {
 
 // ── Notification click ─────────────────────────
 // Handles both action button taps and plain notification taps.
-// Posts a message back to all open app windows so app.js can
-// call handleUnderstood() or handleSnooze() on the correct timer.
 self.addEventListener('notificationclick', event => {
     const notification = event.notification;
-    const action       = event.action;          // 'understood' | 'snooze' | '' (body tap)
+    const action       = event.action;   // 'understood' | 'snooze' | '' (body tap)
     const timerName    = notification.data?.timerName || '';
 
     notification.close();
 
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-            // Post the action to every open window of the app
-            clientList.forEach(client => {
-                client.postMessage({ action: action || 'focus', timerName });
-            });
+    event.waitUntil((async () => {
+        // BroadcastChannel is the most reliable way to reach the page
+        // regardless of whether it is a controlled client yet.
+        try {
+            const bc = new BroadcastChannel('wellness-actions');
+            bc.postMessage({ action: action || 'focus', timerName });
+            bc.close();
+        } catch (_) {}
 
-            // If no window is open and the user tapped the notification body,
-            // open a new window
-            if (!clientList.length && (!action || action === 'focus')) {
-                return clients.openWindow('./');
-            }
+        // Also postMessage every known open client as fallback
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        clientList.forEach(client => {
+            client.postMessage({ action: action || 'focus', timerName });
+        });
 
-            // Focus any existing window
-            for (const client of clientList) {
-                if ('focus' in client) return client.focus();
+        // Open/focus app window on plain body tap
+        if (!action || action === 'focus') {
+            if (clientList.length) {
+                await clientList[0].focus();
+            } else {
+                await clients.openWindow('./');
             }
-        })
-    );
+        }
+    })());
 });
